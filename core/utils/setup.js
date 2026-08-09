@@ -8,6 +8,9 @@ import { ALLOWED_PARENT_ORIGINS, signalLoadSuccess, updateState } from './data-h
 import { preventParticipantTermination } from './participation-validation.js';
 import { formatDateString } from './calculations.js';
 
+// Load promise per resolved path, so concurrent callers share one load instead of racing.
+const sequenceLoads = new Map();
+
 /**
  * Dynamically loads a JavaScript file with Promise-based interface
  * More robust than fetch() for loading sequence files
@@ -15,12 +18,22 @@ import { formatDateString } from './calculations.js';
  * @returns {Promise} Resolves when script is loaded successfully
  */
 function loadSequence(scriptSrc) {
-    return new Promise((resolve, reject) => {
+    // Resolve any path aliases using the import map
+    const resolvedPath = resolvePath(scriptSrc);
 
-        // Resolve any path aliases using the import map
-        const resolvedPath = resolvePath(scriptSrc);
+    // A second caller for the same sequence has to await the same load rather than assume it
+    // has finished. The <script> element is in the document from the moment loading starts, so
+    // presence alone meant "already loaded" and resolved while the file was still in flight -
+    // the caller then ran against a sequence global that did not exist yet
+    // (ReferenceError: reversal_json is not defined).
+    const inFlight = sequenceLoads.get(resolvedPath);
+    if (inFlight) {
+        return inFlight;
+    }
 
-        // Check if script is already loaded
+    const loadPromise = new Promise((resolve, reject) => {
+        // Present but not tracked here means it came from the document's own markup, and
+        // module scripts are deferred, so it has already executed.
         const existingScript = document.querySelector(`script[src="${resolvedPath}"]`);
         if (existingScript) {
             console.log(`Script already loaded: ${resolvedPath}`);
@@ -30,26 +43,33 @@ function loadSequence(scriptSrc) {
 
         // Create a new script element for dynamic loading
         const script = document.createElement("script");
-        
+
         // Set the src attribute to the provided script path
         script.src = resolvedPath;
         script.type = "text/javascript";
-        
+
         // Success handler
         script.onload = () => {
             console.log("Script loaded successfully:", resolvedPath);
             resolve();
         };
-        
+
         // Error handler
         script.onerror = () => {
             console.error("Failed to load script:", resolvedPath);
             reject(new Error(`Failed to load sequence script: ${resolvedPath}`));
         };
-        
+
         // Append the script to the document's head to trigger loading
         document.head.appendChild(script);
     });
+
+    sequenceLoads.set(resolvedPath, loadPromise);
+    // A failed load must not be cached, or every later attempt replays the same failure
+    // without retrying the request.
+    loadPromise.catch(() => sequenceLoads.delete(resolvedPath));
+
+    return loadPromise;
 }
 
 /**

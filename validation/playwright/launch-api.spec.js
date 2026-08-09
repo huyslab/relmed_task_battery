@@ -48,6 +48,28 @@ test('a malformed session_state does not stop the launch', async ({ page }) => {
   await expect(page.locator('#display_element')).not.toContainText('Error Loading Experiment');
 });
 
+test('two builds of the same task do not race its sequence file', async ({ page }) => {
+  // loadSequence used to treat "a <script> with this src is in the document" as "it has
+  // finished loading". The element is there from the moment loading starts, so a second
+  // caller resolved early and ran against a sequence global that did not exist yet. This
+  // starts both builds in the same tick, which is what makes the second one overlap the
+  // first one's in-flight request.
+  await page.goto('/experiment.html?participant_id=sequence-race-check&context=relmed&task=reversal&session=wk0');
+
+  const result = await page.evaluate(async () => {
+    const { createTaskTimeline } = await import('/api/index.js');
+    const settled = await Promise.allSettled([
+      createTaskTimeline('reversal', { session: 'wk0' }),
+      createTaskTimeline('reversal', { session: 'wk0' })
+    ]);
+    return settled.map((outcome) =>
+      outcome.status === 'fulfilled' ? `ok:${outcome.value.length > 0}` : `error:${outcome.reason.message}`
+    );
+  });
+
+  expect(result, 'both concurrent builds should produce a timeline').toEqual(['ok:true', 'ok:true']);
+});
+
 test('a single task with no bonus rule runs without a bonus reveal', async ({ page }) => {
   // bonusRules covers reversal and vigour. Any other task once built a bonus trial with
   // max_bonus/min_prop_bonus undefined, and computeTotalBonus reached the participant as

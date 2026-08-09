@@ -295,7 +295,7 @@ export function createControlInstructionsTimeline(settings) {
             <div class="instruction-stage">
                 <img class="background" src="./assets/images/control/ocean.png" alt="Background"/>
                 <section class="scene">
-                <img class="island-far" src="./assets/images/control/session-specific/${settings.session}/simple_island_${downstreamIsland}.png" alt="Farther island" />
+                <img class="island-far" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${downstreamIsland}.png" alt="Farther island" />
                 <div class="overlap-group">
                     <div class="choice-left">
                         <div class="fuel-container-left" style="visibility: hidden;">
@@ -334,7 +334,7 @@ export function createControlInstructionsTimeline(settings) {
             <div class="instruction-stage">
                 <img class="background" src="./assets/images/control/ocean.png" alt="Background"/>
                 <section class="scene">
-                <img class="island-far" src="./assets/images/control/session-specific/${settings.session}/simple_island_${downstreamIsland}.png" alt="Farther island" />
+                <img class="island-far" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${downstreamIsland}.png" alt="Farther island" />
                 <div class="overlap-group">
                     <div class="choice-left">
                         <div class="fuel-container-left" style="visibility: hidden;">
@@ -373,7 +373,7 @@ export function createControlInstructionsTimeline(settings) {
             <div class="instruction-stage">
                 <img class="background" src="./assets/images/control/ocean.png" alt="Background"/>
                 <section class="scene">
-                <img class="island-far" src="./assets/images/control/session-specific/${settings.session}/simple_island_${downstreamIsland}.png" alt="Farther island" />
+                <img class="island-far" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${downstreamIsland}.png" alt="Farther island" />
                 <div class="overlap-group">
                     <div class="choice-left">
                         <div class="fuel-container-left" style="visibility: hidden;">
@@ -412,7 +412,7 @@ export function createControlInstructionsTimeline(settings) {
             <div class="instruction-stage">
                 <img class="background" src="./assets/images/control/ocean.png" alt="Background"/>
                 <section class="scene">
-                <img class="island-far" src="./assets/images/control/session-specific/${settings.session}/simple_island_${downstreamIsland}.png" alt="Farther island" />
+                <img class="island-far" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${downstreamIsland}.png" alt="Farther island" />
                 <div class="overlap-group">
                     <div class="choice-left">
                         <div class="fuel-container-left">
@@ -460,7 +460,7 @@ export function createControlInstructionsTimeline(settings) {
                         </div>
                         <img class="island-near" style="visibility: hidden;" src="./assets/images/control/simple_island.png" alt="Hidden island" />
                         <div class="choice-right">
-                            <img class="island-near" src="./assets/images/control/session-specific/${settings.session}/simple_island_${homebaseIsland}.png" alt="Destination island" style="top: -10%;" />
+                            <img class="island-near" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${homebaseIsland}.png" alt="Destination island" style="top: -10%;" />
                         </div>
                     </div>
                 </section>
@@ -478,7 +478,7 @@ export function createControlInstructionsTimeline(settings) {
                 <div class="instruction-stage">
                     <img class="background" src="./assets/images/control/ocean.png" alt="Background"/>
                     <section class="scene">
-                    <img class="island-far" src="./assets/images/control/session-specific/${settings.session}/simple_island_${downstreamIsland}.png" alt="Farther island" />
+                    <img class="island-far" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${downstreamIsland}.png" alt="Farther island" />
                     <div class="overlap-group">
                         <div class="choice-left">
                             <div class="fuel-container-left" style="visibility: hidden;">
@@ -520,7 +520,7 @@ export function createControlInstructionsTimeline(settings) {
             <div class="instruction-stage">
                 <img class="background" src="./assets/images/control/ocean.png" alt="Background"/>
                 <section class="scene">
-                    <img class="island-far" src="./assets/images/control/session-specific/${settings.session}/simple_island_${downstreamIsland}.png" alt="Farther island" />
+                    <img class="island-far" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${downstreamIsland}.png" alt="Farther island" />
                     <img class="feedback-ship" src="./assets/images/control/simple_ship_${rightShip}.png" alt="Ship" style="opacity: 0;" />
                 ${createOceanCurrents(2)}
                 </section>
@@ -592,7 +592,7 @@ export function createControlInstructionsTimeline(settings) {
             <div class="instruction-stage">
                 <img class="background" src="./assets/images/control/ocean.png" alt="Background"/>
                 <section class="scene">
-                <img class="island-far" src="./assets/images/control/session-specific/${settings.session}/simple_island_${downstreamIsland}.png" alt="Farther island" />
+                <img class="island-far" src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/simple_island_${downstreamIsland}.png" alt="Farther island" />
                 <div class="overlap-group">
                     <div class="choice-left">
                         <div class="fuel-container-left" style="visibility: hidden;">
@@ -821,7 +821,7 @@ export function createControlInstructionsTimeline(settings) {
         type: jsPsychPredictHomeBase,
         ship: "blue",
         predict_decision: null,
-        choices: settings.session === "screening" ? ["i1", "i2", "i3"] : ["i2", "i3", "i4", "i1"],
+        choices: settings.sessionInfo.variant === 'screening' ? ["i1", "i2", "i3"] : ["i2", "i3", "i4", "i1"],
         post_trial_gap: 0,
         on_load: function () {
             // Remove the icon-row element if it exists
@@ -1030,7 +1030,7 @@ export function createControlInstructionsTimeline(settings) {
             return restart;
         },
         on_timeline_start: () => {
-            if (settings.session !== "screening") {
+            if (settings.sessionInfo.variant !== 'screening') {
                 updateState(`no_resume_10_minutes`);
             }
             updateState("control_instructions_start");
@@ -1060,7 +1060,7 @@ export function createControlInstructionsTimeline(settings) {
         controlInstructionsLoop,
         createPressBothTrial(
             `<p><strong>Great! You're now ready to begin the real game.</strong></p>
-            <p>You'll play multiple rounds, which typically takes about <strong>${settings.session === "screening" ? 4 : 14} minutes</strong> to complete.</p>
+            <p>You'll play multiple rounds, which typically takes about <strong>${settings.sessionInfo.variant === 'screening' ? 4 : 14} minutes</strong> to complete.</p>
             <p>When you're ready, place your fingers comfortably on the <strong>left and right arrow keys</strong> as shown below. Press down <strong> both left and right arrow keys at the same time </strong> to begin.</p>
             <img src='./assets/images/2_finger_keys.jpg' style='width:250px;'></img>`,
             "control_instruction_end"

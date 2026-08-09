@@ -49,12 +49,12 @@ function PITMainInstructions(settings) {
 
             <div class="pav-stimuli-container">
                   <div class="pit-pav-row">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT1.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT2.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT3.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT4.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT5.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT6.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT1.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT2.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT3.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT4.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT5.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT6.png"} class="pit-pav-icon">
                   </div>
             </div>
       </div>
@@ -65,13 +65,13 @@ function PITMainInstructions(settings) {
 
             <div class="pav-stimuli-container">
                   <div class="pit-pav-row">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT1.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT2.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT3.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT1.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT2.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT3.png"} class="pit-pav-icon">
                         <div class="vertical"></div>
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT4.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT5.png"} class="pit-pav-icon">
-                        <img src=${"./assets/images/pavlovian-stims/" + settings.session + "/PIT6.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT4.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT5.png"} class="pit-pav-icon">
+                        <img src=${"./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/PIT6.png"} class="pit-pav-icon">
                   </div>
                   <div class="pit-coin-row">
                         <img src="./assets/images/card-choosing/outcomes/1pound.png" class="pit-coin-icon">

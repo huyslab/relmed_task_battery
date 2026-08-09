@@ -6,7 +6,7 @@ This module contains behavioral paradigms that utilize a shared piggy bank inter
 ## Tasks Included
 
 ### Vigour Task
-The vigour task measures participants' motivation and effort allocation by having them shake a virtual piggy bank to earn coins. Participants press the 'B' key repeatedly to shake the piggy bank, with different trials requiring varying effort levels (ratio of presses per coin) for different reward magnitudes. The task assesses how participants balance effort expenditure with reward value.
+The vigour task measures participants' motivation and effort allocation by having them shake a virtual piggy bank to earn coins. Participants repeatedly tap (or click) the piggy bank to shake it, with different trials requiring varying effort levels (ratio of presses per coin) for different reward magnitudes. The task assesses how participants balance effort expenditure with reward value.
 
 ### Pavlovian-to-Instrumental Transfer (PIT) Task
 The PIT task examines how Pavlovian cues influence instrumental behavior. Participants interact with the piggy bank in notional extinction, while being presented with previously conditioned stimuli, allowing researchers to study how learned associations affect motivated responding.

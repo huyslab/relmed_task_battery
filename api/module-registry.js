@@ -1,13 +1,13 @@
 // A module is a collection of tasks to be completed in a single sitting.
 // Each module can contain one or more tasks, and each task can have its own configuration settings.
+//
+// A module does not declare a session. The session comes from the launch URL, is resolved
+// once against the session registry (api/session-registry.js), and is applied to every task
+// in the module - so the same module definition serves every session the study runs.
 
 export const ModuleRegistry = {
     full_battery: {
         name: "Full RELEMD Task Battery",
-        moduleConfig: { // Settings that apply to all tasks in the module unless overridden
-            session: "wk0",
-            sequence: "wk0"
-        }, 
         elements: [
             { type: "instructions", config: { text: "start_message" } },
             { type: "task", name: "reversal"},
@@ -39,10 +39,6 @@ export const ModuleRegistry = {
     },
     screening: {
         name: "Screening Module",
-        moduleConfig: { // Settings that apply to all tasks in the module unless overridden
-            session: "screening",
-            sequence: "screening"
-        }, 
         elements: [
             { type: "instructions", config: { text: "start_message" } },
             { type: "task", name: "max_press_test" },

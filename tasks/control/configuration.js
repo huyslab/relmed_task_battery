@@ -7,7 +7,7 @@ const controlConfig = (settings) => {
   return {
     // Base rule: defines island transitions when ships drift due to insufficient fuel
     // Maps current island to destination island following ocean currents
-    baseRule: settings.session === "screening"
+    baseRule: settings.sessionInfo.variant === 'screening'
       ? { 
         i1: "i2",  // Island 1 drifts to Island 2
         i2: "i3",  // Island 2 drifts to Island 3
@@ -22,7 +22,7 @@ const controlConfig = (settings) => {
       },
 
     // Control rule: defines each ship's home base island when sufficiently fueled
-    controlRule: settings.session === "screening"
+    controlRule: settings.sessionInfo.variant === 'screening'
       ? {
         red: "i2",      // Red ship's home base
         yellow: undefined,  // Yellow ship not used in screening
@@ -43,7 +43,9 @@ const controlConfig = (settings) => {
     // Scale factor for fuel requirements (multiplies base thresholds)
     scale: 2,
 
-    // Island naming conventions across different sessions
+    // Island naming conventions across different sessions. Keyed by session key, and
+    // deliberately kept here rather than in the session registry - it is control's content,
+    // not a property of the session. A new session needs an entry added here.
     i1_name: {
       screening: "strawberry",
       wk0: "banana",

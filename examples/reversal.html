@@ -2,55 +2,164 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <base href="../">
     <title>Reversal Task</title>
-    
+
+    <!-- Import map for module resolution. Required: the inline module script below uses
+         relative paths, but the modules it pulls in (api/index.js, task.js, …) import each
+         other via bare "@utils/", "@tasks/", "@api/" specifiers that resolve through this map. -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@utils/": "./core/utils/",
+                "@jspsych/": "./core/jspsych/",
+                "@tasks/": "./tasks/",
+                "@api/": "./api/",
+                "@images/": "./assets/images/"
+            }
+        }
+    </script>
+
     <!-- jsPsych Core Files -->
-    <script src="/core/jspsych/jspsych.js"></script>
-    <script src="/core/jspsych/plugin-html-keyboard-response.js"></script>
-    <script src="/core/jspsych/plugin-html-button-response.js"></script>
-    <script src="/core/jspsych/plugin-fullscreen.js"></script>
-    <script src="/core/jspsych/plugin-instructions.js"></script>
-    <script src="/core/jspsych/plugin-preload.js"></script>
+    <script src="./core/jspsych/jspsych.js"></script>
+    <script src="./core/jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="./core/jspsych/plugin-html-button-response.js"></script>
+    <script src="./core/jspsych/plugin-fullscreen.js"></script>
+    <script src="./core/jspsych/plugin-instructions.js"></script>
+    <script src="./core/jspsych/plugin-preload.js"></script>
+    <script src="./core/jspsych/plugin-call-function.js"></script>
 
     <!-- Task-specific files -->
-    <script src="/tasks/reversal/plugin-reversal.js"></script>
+    <script src="./tasks/reversal/plugin-reversal.js"></script>
 
     <!-- Core utilities -->
-    <script type="module" src="/core/utils/index.js"></script>
+    <script type="module" src="./core/utils/index.js"></script>
     
     <!-- CSS Styles -->
-    <link href="/core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="./core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
 
     <style>
+        html, body {
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
-        
+
         #display_element {
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
+            /* Respect iPhone Dynamic Island and Home Indicator safe areas */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+            box-sizing: border-box;
         }
-        
+
         .instructions p {
-            width: 700px;
+            max-width: min(700px, 92vw);
             text-align: left;
             margin: 1em 0;
+        }
+
+        /* Orientation gate: on phones, block the wrong orientation for the active task; tablets/
+           desktop are exempt (larger min dimension). Driven by
+           <body data-preferred-orientation="portrait|landscape">, set per task by the registry. */
+        #rotate-overlay {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100000;
+            background: #ffffff;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        #rotate-overlay p {
+            font-size: clamp(18px, 5vw, 24px);
+            color: #182b4b;
+            line-height: 1.4;
+            max-width: 90vw;
+            margin: 0;
+            display: none;
+        }
+        .phone-rotate-icon {
+            width: 80px;
+            height: 80px;
+            display: none;
+        }
+        .phone-rotate-icon svg {
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+        }
+        /* landscape-preferred task on a phone held in portrait */
+        @media (orientation: portrait) and (max-width: 500px) {
+            body[data-preferred-orientation="landscape"] #rotate-overlay { display: flex; }
+            body[data-preferred-orientation="landscape"] #rotate-overlay .rotate-msg-landscape { display: block; }
+            body[data-preferred-orientation="landscape"] .phone-rotate-icon { display: block; }
+            body[data-preferred-orientation="landscape"] .phone-rotate-icon svg { animation: rotate-to-landscape 2.5s ease-in-out infinite; }
+        }
+        @keyframes rotate-to-landscape {
+            0%, 15%  { transform: rotate(0deg); }
+            55%, 85% { transform: rotate(90deg); }
+            100%     { transform: rotate(0deg); }
         }
     </style>
 </head>
 <body>
     <div id="display_element"></div>
+
+    <div id="rotate-overlay">
+        <div class="phone-rotate-icon">
+            <svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="56" height="96" rx="10" fill="#182b4b"/>
+                <rect x="6" y="14" width="48" height="72" rx="5" fill="#e2e8f2"/>
+                <circle cx="30" cy="7" r="3" fill="#4a6fa5"/>
+                <rect x="20" y="90" width="20" height="4" rx="2" fill="#4a6fa5"/>
+            </svg>
+        </div>
+        <p class="rotate-msg-landscape">Please rotate your device to <strong>landscape</strong> mode to continue.</p>
+    </div>
+
+    <script>
+        (function () {
+            function setOrientationAngle() {
+                var angle = (screen.orientation?.angle != null ? screen.orientation.angle : (window.orientation || 0));
+                document.body.setAttribute('data-orientation-angle', String(((angle % 360) + 360) % 360));
+            }
+            setOrientationAngle();
+            window.addEventListener('orientationchange', setOrientationAngle);
+            window.addEventListener('resize', setOrientationAngle);
+        })();
+    </script>
     
     <script type="module">
         // Import task registry functions
-        import { createTaskTimeline, getTaskInfo } from '/api/index.js';
-        import { enterExperiment } from '/core/utils/index.js';
+        import { createTaskTimeline, getTaskInfo } from './api/index.js';
+        import { enterExperiment } from './core/utils/index.js';
 
         // Get parameters from URL
         window.participantID = new URLSearchParams(window.location.search).get('participant_id') || '';
@@ -77,7 +186,7 @@
                 console.log('Task info:', taskInfo);
                 
                 // Create the task timeline with default settings
-                const timeline = await createTaskTimeline('reversal', {sequence: "wk0"});
+                const timeline = await createTaskTimeline('reversal', {session: "wk0"});
                 console.log('Timeline created:', timeline);
                 
                 const exitFullscreen = {

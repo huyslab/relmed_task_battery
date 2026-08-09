@@ -29,7 +29,6 @@ const formatted_warning_msg = `
     ">Didn't catch a response - moving on</div>
 `;
 
-
 export const messages = {
     full_battery: {
         start_message: (settings) => { 

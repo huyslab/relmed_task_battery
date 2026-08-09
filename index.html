@@ -57,7 +57,8 @@
             text-align: left;
         }
 
-        input[type="text"] {
+        input[type="text"],
+        select {
             width: 100%;
             padding: 12px 16px;
             font-size: 16px;
@@ -65,9 +66,11 @@
             border-radius: 8px;
             transition: border-color 0.3s ease;
             outline: none;
+            background: white;
         }
 
-        input[type="text"]:focus {
+        input[type="text"]:focus,
+        select:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
@@ -126,14 +129,57 @@
             </div>
             
             <div class="form-group">
-                <label for="session">Session:</label>
-                <select id="session" name="session" required style="width: 100%; padding: 12px 16px; font-size: 16px; border: 2px solid #e1e8ed; border-radius: 8px; transition: border-color 0.3s ease; outline: none; background: white;">
-                    <option value="">Select session</option>
-                    <option value="wk0">Session 1</option>
-                    <option value="wk2">Session 2</option>
+                <label for="context">Context:</label>
+                <select id="context" name="context" required>
+                    <option value="">Select context</option>
+                    <option value="relmed">RELMED</option>
+                    <option value="prolific">Prolific</option>
                 </select>
             </div>
-            
+
+            <div class="form-group">
+                <label for="task">What to run:</label>
+                <!-- Values carry which registry the name comes from; the redirect below turns
+                     that into either a module= or a task= parameter for experiment.html. -->
+                <select id="task" name="task" required>
+                    <option value="">Select a task or module</option>
+                    <optgroup label="Modules">
+                        <option value="module:full_battery">Full battery</option>
+                        <option value="module:screening">Screening</option>
+                    </optgroup>
+                    <optgroup label="Single tasks">
+                        <option value="task:PILT">PILT (card choosing)</option>
+                        <option value="task:WM">WM (one-card)</option>
+                        <option value="task:post_PILT_test">Post-PILT test</option>
+                        <option value="task:post_WM_test">Post-WM test</option>
+                        <option value="task:reversal">Reversal</option>
+                        <option value="task:vigour">Vigour</option>
+                        <option value="task:vigour_test">Vigour test</option>
+                        <option value="task:PIT">PIT</option>
+                        <option value="task:control">Control (shipping)</option>
+                        <option value="task:max_press_test">Max press test</option>
+                        <option value="task:pavlovian_lottery">Pavlovian lottery</option>
+                        <option value="task:delay_discounting">Delay discounting</option>
+                        <option value="task:open_text">Open text</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="session">Session:</label>
+                <select id="session" name="session" required>
+                    <!-- Values are the canonical keys from api/session-registry.js;
+                         resolveSession also accepts "Session N", "Week N" and aliases. -->
+                    <option value="">Select session</option>
+                    <option value="screening">Screening (training)</option>
+                    <option value="wk0">Week 0</option>
+                    <option value="wk2">Week 2</option>
+                    <option value="wk4">Week 4</option>
+                    <option value="wk24">Week 24</option>
+                    <option value="wk28">Week 28</option>
+                </select>
+            </div>
+
             <button type="submit" class="start-button" id="startButton">
                 Start Experiment
             </button>
@@ -147,43 +193,90 @@
     <script>
         document.getElementById('startForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const participantId = document.getElementById('participantId').value.trim();
+            const context = document.getElementById('context').value;
+            const task = document.getElementById('task').value;
             const session = document.getElementById('session').value;
             const errorMessage = document.getElementById('errorMessage');
-            
+
             // Hide error message
             errorMessage.style.display = 'none';
-            
+
             // Validate participant ID
             if (!participantId) {
                 errorMessage.textContent = 'Please enter a participant ID';
                 errorMessage.style.display = 'block';
                 return;
             }
-            
-            // Validate session selection
-            if (!session) {
-                errorMessage.textContent = 'Please select a session';
-                errorMessage.style.display = 'block';
-                return;
-            }
-            
+
             // Check if participant ID contains only valid characters (alphanumeric, hyphens, underscores)
             if (!/^[a-zA-Z0-9_-]+$/.test(participantId)) {
                 errorMessage.textContent = 'Participant ID can only contain letters, numbers, hyphens, and underscores';
                 errorMessage.style.display = 'block';
                 return;
             }
-            
-            // Redirect to experiment.html with participant_id and session parameters
-            window.location.href = `experiment.html?participant_id=${encodeURIComponent(participantId)}&session=${encodeURIComponent(session)}`;
+
+            // Validate context selection
+            if (!context) {
+                errorMessage.textContent = 'Please select a context';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // Validate task selection
+            if (!task) {
+                errorMessage.textContent = 'Please select a task or module';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // Validate session selection
+            if (!session) {
+                errorMessage.textContent = 'Please select a session';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // Redirect to experiment.html with participant_id, context, session, and either a
+            // module or a task - experiment.html accepts one or the other.
+            // `kind` is "module" or "task" - it names the parameter, so it is checked against
+            // the two allowed names rather than encoded, and the rest are encoded values.
+            const [kind, name] = task.split(':');
+            if (kind !== 'module' && kind !== 'task') {
+                errorMessage.textContent = 'Please select a task or module';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            const params = new URLSearchParams({
+                participant_id: participantId,
+                context,
+                [kind]: name,
+                session
+            });
+            window.location.href = `experiment.html?${params}`;
         });
 
         // Enable real-time validation
         document.getElementById('participantId').addEventListener('input', function() {
             const errorMessage = document.getElementById('errorMessage');
             if (this.value.trim()) {
+                errorMessage.style.display = 'none';
+            }
+        });
+
+        // Hide error message when context is selected
+        document.getElementById('context').addEventListener('change', function() {
+            const errorMessage = document.getElementById('errorMessage');
+            if (this.value) {
+                errorMessage.style.display = 'none';
+            }
+        });
+
+        // Hide error message when task is selected
+        document.getElementById('task').addEventListener('change', function() {
+            const errorMessage = document.getElementById('errorMessage');
+            if (this.value) {
                 errorMessage.style.display = 'none';
             }
         });

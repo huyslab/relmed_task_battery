@@ -3,29 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="../">
     <title>Control Task</title>
     
     <!-- jsPsych Core Files -->
-    <script src="/core/jspsych/jspsych.js"></script>
-    <script src="/core/jspsych/plugin-html-keyboard-response.js"></script>
-    <script src="/core/jspsych/plugin-html-button-response.js"></script>
-    <script src="/core/jspsych/plugin-fullscreen.js"></script>
-    <script src="/core/jspsych/plugin-instructions.js"></script>
-    <script src="/core/jspsych/plugin-preload.js"></script>
-    <script src="/core/jspsych/plugin-survey-multi-choice.js"></script>
+    <script src="./core/jspsych/jspsych.js"></script>
+    <script src="./core/jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="./core/jspsych/plugin-html-button-response.js"></script>
+    <script src="./core/jspsych/plugin-fullscreen.js"></script>
+    <script src="./core/jspsych/plugin-instructions.js"></script>
+    <script src="./core/jspsych/plugin-preload.js"></script>
+    <script src="./core/jspsych/plugin-survey-multi-choice.js"></script>
 
     <!-- Task-specific files -->
-    <script src="/tasks/control/plugins/plugin-explore-ship.js"></script>
-    <script src="/tasks/control/plugins/plugin-explore-ship-feedback.js"></script>
-    <script src="/tasks/control/plugins/plugin-predict-home-base.js"></script>
-    <script src="/tasks/control/plugins/plugin-reward-ship.js"></script>
-    <script src="/tasks/control/plugins/plugin-reward-prompt.js"></script>
+    <script src="./tasks/control/plugins/plugin-explore-ship.js"></script>
+    <script src="./tasks/control/plugins/plugin-explore-ship-feedback.js"></script>
+    <script src="./tasks/control/plugins/plugin-predict-home-base.js"></script>
+    <script src="./tasks/control/plugins/plugin-reward-ship.js"></script>
+    <script src="./tasks/control/plugins/plugin-reward-prompt.js"></script>
 
     <!-- Core utilities -->
-    <script type="module" src="/core/utils/index.js"></script>
+    <script type="module" src="./core/utils/index.js"></script>
     
     <!-- CSS Styles -->
-    <link href="/core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="./core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
 
     <style>
         body {
@@ -54,8 +55,8 @@
     
     <script type="module">
         // Import task registry functions
-        import { createTaskTimeline, getTaskInfo } from '/api/index.js';
-        import { enterExperiment } from '/core/utils/index.js';
+        import { createTaskTimeline, getTaskInfo } from './api/index.js';
+        import { enterExperiment } from './core/utils/index.js';
 
         // Get parameters from URL
         window.participantID = new URLSearchParams(window.location.search).get('participant_id') || '';

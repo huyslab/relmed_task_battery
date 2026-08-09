@@ -1,6 +1,9 @@
-import { updatePersistentCoinContainer, observeResizing, dropCoin } from './vigour-utils.js';
+import { updatePersistentCoinContainer, observeResizing, dropCoin, setupPointerListener, cleanupPointerListener, simulatePointerTap } from './vigour-utils.js';
 import { shakePiggy } from './utils.js';
 import { updateState } from '@utils/index.js';
+
+let instructionPointerListener = null;
+let instructionResizeObserver = null;
 
 /**
  * Interactive instruction page that demonstrates the piggy bank shaking mechanism
@@ -9,12 +12,12 @@ import { updateState } from '@utils/index.js';
 const instructionPage = {
   type: jsPsychHtmlKeyboardResponse,
   stimulus: generateInstructStimulus,
-  choices: ["NO_KEYS"],
+  choices: 'NO_KEYS',
   trial_duration: null,
   data: {trialphase: 'vigour_instructions'},
   on_load: function () {
     updatePersistentCoinContainer();
-    observeResizing('coin-container', updatePersistentCoinContainer);
+    instructionResizeObserver = observeResizing('coin-container', updatePersistentCoinContainer);
 
     // Demo state variables
     let shakeCount = 0;
@@ -25,7 +28,7 @@ const instructionPage = {
     const bottomContainer = document.getElementById('bottom-container');
     const experimentContainer = document.getElementById('experiment-container');
     const buttonInstruction = document.getElementById('button-instruction');
-    let keyboardListener = setupKeyboardListener(handleSpacebar);
+    instructionPointerListener = setupPointerListener(handleSpacebar);
 
     /**
      * Handles spacebar presses during the instruction demo
@@ -58,7 +61,6 @@ const instructionPage = {
     function startTimer() {
       timer = setTimeout(() => {
         experimentContainer.style.visibility = 'hidden';
-        // buttonInstruction.style.fontSize = '1.5em';
         buttonInstruction.style.color = '#0066cc';
       }, 10000); // 10 seconds
     }
@@ -75,8 +77,10 @@ const instructionPage = {
       bottomContainer.style.visibility = 'hidden';
       buttonInstruction.style.fontSize = '';
       buttonInstruction.style.color = '';
-      jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
-      keyboardListener = setupKeyboardListener(handleSpacebar);
+      if (instructionPointerListener) {
+        cleanupPointerListener(instructionPointerListener.handler, instructionPointerListener.element);
+      }
+      instructionPointerListener = setupPointerListener(handleSpacebar);
       const coinContainer = document.getElementById('coin-container');
       coinContainer.innerHTML = '';
     }
@@ -87,35 +91,40 @@ const instructionPage = {
 
     // Simulate user interaction for testing mode
     if (window.simulating) {
-      async function simulateKeyPressesAndClick() {
-        const pressKeyPromises = [];
-        // Simulate FR + 1 key presses to trigger coin drop and continue option
+      async function simulateTapsAndClick() {
+        const piggy = document.getElementById('piggy-container');
+        const tapPromises = [];
+        // Simulate FR + 1 taps to trigger coin drop and continue option
         for (let i = 0; i < FR + 1; i++) {
-          const scheduledTime = 100 * i + 1; // Delay for this specific key press
-
-          pressKeyPromises.push(
-        new Promise(resolve => {
-          // Schedule the key press simulation
-          jsPsych.pluginAPI.pressKey('b', scheduledTime);
-          
-          // This promise resolves when the time for this key press simulation has passed
-          setTimeout(resolve, scheduledTime);
-        })
+          const scheduledTime = 100 * i + 1;
+          tapPromises.push(
+            new Promise(resolve => {
+              simulatePointerTap(piggy, scheduledTime);
+              setTimeout(resolve, scheduledTime);
+            })
           );
         }
 
-        // Wait for all key presses to be simulated
-        await Promise.all(pressKeyPromises);
+        // Wait for all taps to be simulated
+        await Promise.all(tapPromises);
 
         // Simulate clicking continue button
         jsPsych.pluginAPI.clickTarget(document.getElementById('continue-button'), 100);
       }
 
       // Call the async function to start the simulation
-      simulateKeyPressesAndClick();
+      simulateTapsAndClick();
     }
   },
   on_finish: function () {
+    if (instructionPointerListener) {
+      cleanupPointerListener(instructionPointerListener.handler, instructionPointerListener.element);
+      instructionPointerListener = null;
+    }
+    if (instructionResizeObserver) {
+      instructionResizeObserver.disconnect();
+      instructionResizeObserver = null;
+    }
     jsPsych.pluginAPI.cancelAllKeyboardResponses();
   }
 };
@@ -167,15 +176,24 @@ const ruleInstruction = {
  */
 const startConfirmation = {
   type: jsPsychHtmlKeyboardResponse,
-  choices: ['b', 'r'], // 'b' to begin, 'r' to restart instructions
+  choices: 'NO_KEYS',
   stimulus: `
-  <div id="instruction-text">
-      <p>You will now play the piggy-bank game without a break for about <strong>four minutes</strong>.</p>
-      <p>When you're ready, place the <strong>index finger of the hand you write with</strong> comfortably on the <span class="spacebar-icon">B</span> key, as shown below.</p>
-      <p>Use only this finger to press during the game.</p>
-      <p>Press it once to begin.</p>
-      <img src="./assets/images/piggy-banks/vigour_key.png" style="width:250px;" alt="Key press illustration">
-      <p>If you want to start over from the beginning, press <span class="spacebar-icon">R</span>.</p>
+  <div class="experiment-wrapper">
+    <div id="instruction-container">
+      <div id="instruction-text">
+        <p>You will now play the piggy-bank game without a break for about <strong>four minutes</strong>.</p>
+        <p>When you're ready, <span class="highlight-txt">tap the piggy bank</span> to begin.</p>
+      </div>
+    </div>
+    <div id="experiment-container">
+      <div id="piggy-container">
+        <img id="piggy-bank" src="./assets/images/piggy-banks/piggy-bank.png"
+             alt="Tap the piggy bank to start">
+      </div>
+    </div>
+    <div id="bottom-container" style="visibility: visible;">
+      <button id="reread-button" class="jspsych-btn">Re-read instructions</button>
+    </div>
   </div>
     `,
   post_trial_gap: 300,
@@ -183,6 +201,40 @@ const startConfirmation = {
   simulation_options: {
     data: {
       response: 'b'
+    }
+  },
+  on_load: function () {
+    let confirmed = false;
+
+    const finishOnce = function (response) {
+      if (confirmed) return;
+      confirmed = true;
+      jsPsych.finishTrial({ response });
+    };
+
+    // Tap piggybank to begin
+    const piggyContainer = document.getElementById('piggy-container');
+    if (piggyContainer) {
+      piggyContainer.addEventListener('pointerdown', function handler(event) {
+        if (!event.isPrimary || event.button !== 0) return;
+        event.preventDefault();
+        finishOnce('b');
+        piggyContainer.removeEventListener('pointerdown', handler);
+      });
+    }
+
+    // Button to re-read instructions
+    const rereadButton = document.getElementById('reread-button');
+    if (rereadButton) {
+      rereadButton.addEventListener('click', function () {
+        finishOnce('r');
+      });
+    }
+
+    // Auto-advance in simulation mode: this trial has no timeout and ends only on a
+    // real tap/click, so dispatch a simulated tap on the piggy bank to begin the task.
+    if (window.simulating) {
+      simulatePointerTap(piggyContainer, 100);
     }
   },
   on_finish: function (data) {
@@ -249,9 +301,9 @@ function generateInstructStimulus() {
  */
 function updateInstructionText(shakeCount) {
   const messages = [
-    '<p>Welcome to the piggy bank game!</p><p>Press <span class="spacebar-icon">B</span> on the keyboard to shake this piggy bank!</p>',
-    '<p>Press <span class="spacebar-icon">B</span> on the keyboard to shake this piggy bank!</p><p>You can press <span class="spacebar-icon">B</span> again to keep on shaking...</p>',
-    '<p>Well done, You just got a coin out of the piggy bank!</p><p><span class="highlight-txt">You can always press again for more coins.</span> Try getting some more!</p>'
+    '<p>Welcome to the piggy bank game!</p><p>Tap the piggy bank to shake it!</p>',
+    '<p>Tap the piggy bank to shake it!</p><p>You can tap it again to keep on shaking...</p>',
+    '<p>Well done, You just got a coin out of the piggy bank!</p><p><span class="highlight-txt">You can always tap again for more coins.</span> Try getting some more!</p>'
   ];
   let messageIndex = 0;
   if (shakeCount < 1) {
@@ -262,19 +314,4 @@ function updateInstructionText(shakeCount) {
     messageIndex = 2; // Success message after first coin
   }
   document.getElementById('instruction-text').innerHTML = messages[messageIndex];
-}
-
-/**
- * Sets up keyboard listener for the instruction demo
- * @param {Function} callback - Function to call when valid key is pressed
- * @returns {Object} Keyboard listener object for cleanup
- */
-function setupKeyboardListener(callback) {
-  return jsPsych.pluginAPI.getKeyboardResponse({
-    callback_function: callback,
-    valid_responses: ['b'],
-    rt_method: 'performance',
-    persist: true,
-    allow_held_key: false
-  });
 }

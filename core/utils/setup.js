@@ -358,8 +358,10 @@ const enterExperiment = {
             n_warnings: 0
         })
 
-        // Prevent participant from terminating experiment unless in debug mode
-        if (!(window.participantID && window.participantID.includes("debug"))) {
+        // Prevent participant from terminating experiment unless in debug mode. experiment.html
+        // sets window.debug from either "debug" or "TST" in the participant ID; the ID is still
+        // checked directly so the examples, which set no window.debug, keep working.
+        if (!(window.debug || (window.participantID && window.participantID.includes("debug")))) {
             preventParticipantTermination();
         }
 

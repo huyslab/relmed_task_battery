@@ -227,13 +227,37 @@
         const urlParams = new URLSearchParams(window.location.search);
 
         // Get parameters from URL (populated by index.html's setup form redirect)
-        window.context = urlParams.get('context') || 'relmed';
+        // A missing context falls back to "relmed" rather than failing the guard below, because
+        // that is the context every RELMED-hosted launch runs in and a host that omits the
+        // parameter should still run. The fallback is announced: it decides where data is
+        // submitted, so a Prolific launch that silently landed here would post to a parent
+        // window that isn't there. An explicit but unrecognised value is still rejected.
+        const requestedContext = urlParams.get('context');
+        if (!requestedContext) {
+            console.warn('No "context" URL parameter; assuming "relmed". Pass context=relmed or context=prolific explicitly.');
+        }
+        window.context = requestedContext || 'relmed';
         window.participantID = urlParams.get('participant_id') || '';
         window.simulating = urlParams.get('simulate') === '1' || window.participantID.includes("simulate");
         window.debug = window.participantID.includes("debug") || window.participantID.includes("TST");
         // Resolves the website's `module_state`, falling back to the older `state` name
         window.last_state = getResumptionState();
-        window.session_state = JSON.parse(urlParams.get('session_state') || "{}");
+        // Runs at module scope, before runExperiment's try/catch exists, so a malformed or
+        // truncated value from the website would otherwise throw here and leave a blank page
+        // with no error shown. A bad resume payload costs the accumulated bonus state, which
+        // computeTotalBonus treats as zero - worth a warning, not a dead launch.
+        window.session_state = (() => {
+            const raw = urlParams.get('session_state');
+            if (!raw) return {};
+            try {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+                console.warn('Ignoring "session_state" URL parameter: expected a JSON object.', parsed);
+            } catch (error) {
+                console.warn('Ignoring unparsable "session_state" URL parameter.', error);
+            }
+            return {};
+        })();
 
         // Stamped into every trial for provenance; kept in this exact shape because
         // .releaserc.json rewrites the literal on release.
@@ -272,6 +296,12 @@
         // Recorded against every submission, so the data says which run this was
         window.module = moduleName || taskName;
 
+        // What a single-task run pays. A task without an entry here gets no bonus trial at
+        // all: computeTotalBonus scales performance between max_bonus and
+        // max_bonus * min_prop_bonus, so running it without a rule reaches the participant
+        // as "£NaN". Add an entry to give a task a bonus reveal - don't rely on a default,
+        // since the amount is a study decision rather than something to guess.
+        // Modules are unaffected: they carry their own rules in the module registry.
         const bonusRules = {
             reversal: {
                 max_bonus: 1.00,
@@ -329,7 +359,7 @@
                 // element in its own definition. A single task has no such definition, so it
                 // is wrapped in a one-task module here to reveal its bonus at the end.
                 const fullTimeline = [enterExperiment, ...timeline];
-                if (!runningModule) {
+                if (!runningModule && bonusRules[taskName]) {
                     const singleTaskModule = {
                         elements: [
                             {
@@ -341,6 +371,8 @@
                         ...bonusRules[taskName]
                     };
                     fullTimeline.push(bonusTrial(singleTaskModule));
+                } else if (!runningModule) {
+                    console.warn(`No bonus rule for task "${taskName}"; running it without a bonus reveal.`);
                 }
 
                 // Run the experiment
@@ -370,14 +402,31 @@
                 // has started (inside prepareDom()) - errors thrown before that point (e.g. the
                 // guard above, or createTaskTimeline for an unknown task) need the raw container.
                 const errorContainer = jsPsych.getDisplayElement() || document.getElementById('display_element');
-                errorContainer.innerHTML = `
-                    <div style="text-align: center; padding: 50px;">
-                        <h2>Error Loading Experiment</h2>
-                        <p>There was an error loading the ${runningModule ? `${moduleName} module` : `${taskName || 'requested'} task`}:</p>
-                        <p><strong>${error.message}</strong></p>
-                        <p>Please check the console for more details.</p>
-                    </div>
-                `;
+
+                // Both the run's name and error.message carry URL-controlled text - an
+                // unrecognised `task` value is echoed back by the registry's own error - so
+                // these are set as text, never interpolated into markup. Only the static
+                // wrapper is built as HTML.
+                errorContainer.replaceChildren();
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = 'text-align: center; padding: 50px;';
+
+                const heading = document.createElement('h2');
+                heading.textContent = 'Error Loading Experiment';
+
+                const intro = document.createElement('p');
+                intro.textContent = `There was an error loading the ${runningModule ? `${moduleName} module` : `${taskName || 'requested'} task`}:`;
+
+                const detail = document.createElement('p');
+                const strong = document.createElement('strong');
+                strong.textContent = error.message;
+                detail.appendChild(strong);
+
+                const hint = document.createElement('p');
+                hint.textContent = 'Please check the console for more details.';
+
+                wrapper.append(heading, intro, detail, hint);
+                errorContainer.appendChild(wrapper);
             }
         }
 

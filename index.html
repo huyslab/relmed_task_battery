@@ -240,8 +240,21 @@
 
             // Redirect to experiment.html with participant_id, context, session, and either a
             // module or a task - experiment.html accepts one or the other.
+            // `kind` is "module" or "task" - it names the parameter, so it is checked against
+            // the two allowed names rather than encoded, and the rest are encoded values.
             const [kind, name] = task.split(':');
-            window.location.href = `experiment.html?participant_id=${encodeURIComponent(participantId)}&context=${encodeURIComponent(context)}&${kind}=${encodeURIComponent(name)}&session=${encodeURIComponent(session)}`;
+            if (kind !== 'module' && kind !== 'task') {
+                errorMessage.textContent = 'Please select a task or module';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            const params = new URLSearchParams({
+                participant_id: participantId,
+                context,
+                [kind]: name,
+                session
+            });
+            window.location.href = `experiment.html?${params}`;
         });
 
         // Enable real-time validation

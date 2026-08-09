@@ -417,7 +417,7 @@ export function createCoreControlTimeline(settings) {
                 <div style="font-size: 32px;">→</div>
               </td>
               <td style="text-align: left; vertical-align: middle;">
-                <img src="./assets/images/control/Control_stims/${settings.sessionInfo.stimulusSet}/island_icon_${homebase}.png" alt="Island ${homebase}" style="height: 100px;">
+                <img src="./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}/island_icon_${homebase}.png" alt="Island ${homebase}" style="height: 100px;">
               </td>
             </tr>`;
         }

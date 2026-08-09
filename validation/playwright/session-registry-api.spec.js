@@ -66,7 +66,7 @@ test('an unrecognized session label stops the run before any task loads', async 
     if (/trial1_(wk\d+|screening)\.js$/.test(request.url())) sequenceRequests.push(request.url());
   });
 
-  await page.goto('/experiment.html?participant_id=session-check&context=relmed&module=pilot_1&session=Visit%203');
+  await page.goto('/experiment.html?participant_id=session-check&context=relmed&module=full_battery&session=Visit%203');
 
   await expect(page.locator('#display_element')).toContainText('Unrecognized "session" URL parameter', {
     timeout: 15000,
@@ -83,7 +83,7 @@ test('the resolved session reaches every task in a module', async ({ page }) => 
     request.url().endsWith('/tasks/reversal/sequences/trial1_wk2.js')
   );
 
-  await page.goto('/experiment.html?participant_id=session-check&context=relmed&module=pilot_1&session=Session%202');
+  await page.goto('/experiment.html?participant_id=session-check&context=relmed&module=full_battery&session=Session%202');
   await sequenceRequest;
 
   await expect.poll(() => page.evaluate(() => window.sessionKey)).toBe('wk2');

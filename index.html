@@ -144,13 +144,23 @@
                 <select id="task" name="task" required>
                     <option value="">Select a task or module</option>
                     <optgroup label="Modules">
-                        <option value="module:pilot_1">Pilot 1 (medicine questionnaire, reversal)</option>
-                        <option value="module:pilot_2">Pilot 2 (vigour, PHQ-9 and GAD-7)</option>
+                        <option value="module:full_battery">Full battery</option>
+                        <option value="module:screening">Screening</option>
                     </optgroup>
                     <optgroup label="Single tasks">
-                        <option value="task:vigour">Vigour</option>
+                        <option value="task:PILT">PILT (card choosing)</option>
+                        <option value="task:WM">WM (one-card)</option>
+                        <option value="task:post_PILT_test">Post-PILT test</option>
+                        <option value="task:post_WM_test">Post-WM test</option>
                         <option value="task:reversal">Reversal</option>
-                        <option value="task:self_report">Questionnaires (PHQ-9, GAD-7)</option>
+                        <option value="task:vigour">Vigour</option>
+                        <option value="task:vigour_test">Vigour test</option>
+                        <option value="task:PIT">PIT</option>
+                        <option value="task:control">Control (shipping)</option>
+                        <option value="task:max_press_test">Max press test</option>
+                        <option value="task:pavlovian_lottery">Pavlovian lottery</option>
+                        <option value="task:delay_discounting">Delay discounting</option>
+                        <option value="task:open_text">Open text</option>
                     </optgroup>
                 </select>
             </div>
@@ -158,9 +168,15 @@
             <div class="form-group">
                 <label for="session">Session:</label>
                 <select id="session" name="session" required>
+                    <!-- Values are the canonical keys from api/session-registry.js;
+                         resolveSession also accepts "Session N", "Week N" and aliases. -->
                     <option value="">Select session</option>
-                    <option value="Session 1">Session 1</option>
-                    <option value="Session 2">Session 2</option>
+                    <option value="screening">Screening (training)</option>
+                    <option value="wk0">Week 0</option>
+                    <option value="wk2">Week 2</option>
+                    <option value="wk4">Week 4</option>
+                    <option value="wk24">Week 24</option>
+                    <option value="wk28">Week 28</option>
                 </select>
             </div>
 

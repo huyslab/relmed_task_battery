@@ -14,20 +14,17 @@ const ALLOWED_PARENT_ORIGINS = [
     'http://localhost:3000',
     'https://relmed.ac.uk',
     'https://www.relmed.ac.uk',
-    'https://beta.relmed.ac.uk',
-    'https://mymeds.study',
-    'https://www.mymeds.study',
-    'https://mymeds.delosis.com'
+    'https://beta.relmed.ac.uk'
 ];
 
 /**
  * Resolves the origin of the embedding page.
  *
  * document.referrer holds the parent page's URL. Cross-origin referrer policy trims it to
- * the bare origin ("https://mymeds.study/"), but same-origin embedding keeps the full path
- * ("https://mymeds.study/participant") - and the mymeds participant page lives at
- * /participant, not the domain root the way My RELMED does. Parsing out the origin rather
- * than string-matching the referrer is what makes both cases work.
+ * the bare origin ("https://relmed.ac.uk/"), but same-origin embedding keeps the full path
+ * ("https://relmed.ac.uk/participant") - and a host may serve its participant page from a
+ * sub-path rather than the domain root. Parsing out the origin rather than string-matching
+ * the referrer is what makes both cases work.
  *
  * @returns {string|null} The parent origin, or null if it cannot be determined
  */
@@ -223,7 +220,7 @@ function saveDataREDCap(retry = 1, extra_fields = {}, callback = () => {}) {
         }])
     
         // Submit data via AWS Lambda endpoint for Prolific studies
-        fetch('https://4csc8jmaw2.execute-api.eu-north-1.amazonaws.com/Prod/pharmaciespilot', { 
+        fetch('https://h6pgstm0f9.execute-api.eu-north-1.amazonaws.com/prod/submit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

@@ -10,8 +10,6 @@ import { createControlTimeline, computeRelativeControlBonus } from '@tasks/contr
 import { createOpenTextTimeline } from '@tasks/open-text/index.js';
 import { createReversalTimeline, computeRelativeReversalBonus } from '@tasks/reversal/index.js';
 import { createAcceptabilityTimeline } from '@tasks/acceptability-judgment/index.js';
-import { createMedicationQuestionnaireTimeline } from '@tasks/medication-questionnaire/index.js';
-import { createSelfReportTimeline } from '@tasks/self-report/index.js';
 
 export const TaskRegistry = {
   PILT: {
@@ -371,66 +369,6 @@ export const TaskRegistry = {
     },
     resumptionRules: {
         enabled: true,
-    }
-  },
-  medication_questionnaire: {
-    name: 'Medication Questionnaire',
-    description: 'A short touchscreen questionnaire about the medication the participant was invited to the study for, asked at the start of a session',
-    createTimeline: createMedicationQuestionnaireTimeline,
-    computeBonus: () => 0, // No bonus computation for this task
-    defaultConfig: {
-      task_name: "medication_questionnaire",
-      include_intro: true,
-      allow_unsure: true,
-      max_pill_buttons: 5,
-      earliest_year: 1970,
-      transition_duration: 350,
-      input_mode: "auto"
-    },
-    configOptions: {
-      task_name: "The name of the task, used for state updates and data field prefixes. Default is 'medication_questionnaire'.",
-      include_intro: "Whether to open with a short welcome screen explaining the questionnaire. Default is true.",
-      allow_unsure: "Whether the medicine name and dose questions offer an \"I'm not sure\" button, which records a missing answer rather than blocking the participant. Default is true.",
-      max_pill_buttons: "Pills-per-day is answered with buttons 1 to this number minus one, plus an 'N or more' button that opens a keypad. Default is 5.",
-      earliest_year: "Earliest year offered in the start date question. Default is 1970.",
-      transition_duration: "Duration of the slide transition between questions, in milliseconds. Default is 350.",
-      input_mode: "Which controls to show: 'touch' for tap targets and an on-screen keypad, 'keyboard' for typed entry on a machine with a mouse and keyboard, or 'auto' to pick from the device. Default is 'auto'."
-    },
-    requirements: {
-      css: ['@tasks/medication-questionnaire/styles.css'],
-    },
-    resumptionRules: {
-        enabled: false,
-    }
-  },
-  self_report: {
-    name: 'Self-Report Questionnaires',
-    description: 'Touchscreen self-report questionnaires (PHQ-9, GAD-7), asked one item per screen',
-    createTimeline: createSelfReportTimeline,
-    computeBonus: () => 0, // No bonus computation for this task
-    defaultConfig: {
-      task_name: "self_report",
-      questionnaires: ["PHQ9", "GAD7"],
-      include_intro: true,
-      save_every: 5,
-      transition_duration: 350,
-      input_mode: "auto"
-    },
-    configOptions: {
-      task_name: "The name of the task, used for state updates and the intro screen's data field. Default is 'self_report'.",
-      questionnaires: "Which questionnaires to ask, in order. Available: 'PHQ9', 'GAD7'. Default is ['PHQ9', 'GAD7'].",
-      include_intro: "Whether to open with a screen introducing the set of questionnaires. Each questionnaire always shows its own instructions. Default is true.",
-      save_every: "Save to REDCap after every this many items. Each questionnaire also saves when it finishes. Default is 5.",
-      transition_duration: "Duration of the slide transition between items, in milliseconds. Default is 350.",
-      input_mode: "Which controls to show: 'touch' for tap targets, 'keyboard' to also drive the options with the arrow and number keys, or 'auto' to pick from the device. Default is 'auto'."
-    },
-    requirements: {
-      css: ['@tasks/self-report/styles.css'],
-    },
-    resumptionRules: {
-        // Disabled for the same reason as the medication questionnaire: a resumed run would
-        // skip items whose answers were never recorded, leaving an unscorable questionnaire.
-        enabled: false,
     }
   },
   acceptability_judgment: {

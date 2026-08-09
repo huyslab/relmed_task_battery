@@ -10,7 +10,6 @@ export const ModuleRegistry = {
         name: "Full RELEMD Task Battery",
         elements: [
             { type: "instructions", config: { text: "start_message" } },
-            { type: "task", name: "medication_questionnaire" },
             { type: "task", name: "reversal"},
             { type: "task", name: "acceptability_judgment", config: { task_name: "reversal", game_description: "squirrel game" } },
             { type: "task", name: "max_press_test" },
@@ -36,41 +35,6 @@ export const ModuleRegistry = {
             { type: "instructions", config: { text: "end_message" } },
         ],
         max_bonus: 5.0,
-        min_prop_bonus: 0.6
-    },
-    // The pilot runs as two modules, sat one after the other in a single visit. They are
-    // separate so a participant can stop between them, and so the site can report progress
-    // through the visit - each ends with its own bonus reveal and data upload.
-    pilot_1: {
-        name: "Pilot Module 1",
-        elements: [
-            { type: "instructions", config: { text: "start_message" } },
-            { type: "task", name: "medication_questionnaire" },
-            { type: "task", name: "reversal" },
-            { type: "task", name: "acceptability_judgment", config: { task_name: "reversal", game_description: "squirrel game" } },
-            { type: "bonus" },
-            { type: "instructions", config: { text: "signposting_message" } },
-            { type: "instructions", config: { text: "end_message" } }
-        ],
-        // The game promises a bonus in its instructions, so the module reveals one. Half of
-        // what the single pilot module paid across both games, so a participant who completes
-        // both modules earns the same £3-£5 as before.
-        max_bonus: 2.5,
-        min_prop_bonus: 0.6
-    },
-    pilot_2: {
-        name: "Pilot Module 2",
-        elements: [
-            { type: "instructions", config: { text: "start_message" } },
-            { type: "task", name: "vigour" },
-            { type: "task", name: "acceptability_judgment", config: { task_name: "vigour", game_description: "piggy-bank game" } },
-            { type: "task", name: "self_report", config: { questionnaires: ["PHQ9", "GAD7"] } },
-            { type: "bonus" },
-            { type: "instructions", config: { text: "signposting_message" } },
-            { type: "instructions", config: { text: "end_message" } }
-        ],
-        // See pilot_1: one game, half the pilot's total bonus
-        max_bonus: 2.5,
         min_prop_bonus: 0.6
     },
     screening: {

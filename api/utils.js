@@ -57,7 +57,7 @@ export async function createTaskTimeline(taskName, config = {}) {
     // Resolve the session once, here, so every task - including every task inside a module,
     // which is built through this same function - reads its stimulus set, rule variant and
     // resumption policy from the registry rather than comparing session strings itself.
-    // Tasks with no session at all (the medication questionnaire, vigour) get null.
+    // Tasks with no session at all (e.g. vigour) get null.
     mergedConfig.sessionInfo = mergedConfig.session ? getSession(mergedConfig.session) : null;
 
     // Load required CSS assets

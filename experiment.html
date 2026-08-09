@@ -38,8 +38,6 @@
     <script src="tasks/control/plugins/plugin-reward-prompt.js"></script>
     <script src="tasks/reversal/plugin-reversal.js"></script>
     <script src="tasks/open-text/plugin-open-text.js"></script>
-    <script src="tasks/medication-questionnaire/plugin-medication-question.js"></script>
-    <script src="tasks/self-report/plugin-self-report-item.js"></script>
 
     
     <!-- Core utilities -->
@@ -240,7 +238,7 @@
         // Stamped into every trial for provenance; kept in this exact shape because
         // .releaserc.json rewrites the literal on release.
         jsPsych.data.addProperties({
-            version: "1.8.1"
+            version: "1.0"
         });
 
         // The session label as the website sent it ("Session 1", "Week 0", "Training"). Kept
@@ -296,7 +294,7 @@
                     throw new Error('Missing "module" or "task" URL parameter. Launch this page via index.html rather than directly.');
                 }
                 if (window.context !== 'relmed' && window.context !== 'prolific') {
-                    throw new Error(`Missing or unrecognized "context" URL parameter ("${window.context}"). Expected "relmed" (also used for mymeds) or "prolific".`);
+                    throw new Error(`Missing or unrecognized "context" URL parameter ("${window.context}"). Expected "relmed" or "prolific".`);
                 }
                 // REDCap rejects a submission with no session (post-data requires it), and
                 // every task's stimuli, rules and trial sequence are chosen by session, so a

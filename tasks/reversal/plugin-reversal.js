@@ -193,6 +193,13 @@ var jsPsychReversal = (function (jspsych) {
             var resizeFrame = null;
             var responseDeadlineTimeout = null;
 
+            // Whether the stimulus is actually on screen. Input listeners are attached before
+            // the reveal, and on the slow-image path the stimulus sits at opacity 0 until
+            // img.decode() resolves - an opacity-0 element still takes taps, and the keyboard
+            // listener never depended on visibility at all. Responses are ignored until this
+            // turns true, so nothing is answered against a screen the participant cannot see.
+            var revealed = false;
+
             // Collect all active DOM references for cleanup
             var tapLeft = document.getElementById('rev-tap-left');
             var tapRight = document.getElementById('rev-tap-right');
@@ -227,7 +234,13 @@ var jsPsychReversal = (function (jspsych) {
             };
 
             // Trial end procedure
+            var finished = false;
             var end_trial = () => {
+                // finishTrial twice would write the trial's data row twice and advance the
+                // timeline an extra step, silently skipping a trial.
+                if (finished) return;
+                finished = true;
+
                 cleanupAll();
 
                 // Build trial data
@@ -288,7 +301,7 @@ var jsPsychReversal = (function (jspsych) {
             // phone returns records total wall-clock time, including the rotation interval.
             var after_response = (chosen_side, pointerType) => {
                 syncGateState();
-                if (gateVisible || response.key !== null) return;
+                if (!revealed || gateVisible || response.key !== null) return;
 
                 response.rt = Math.max(0, Math.round(performance.now() - trialOnset));
                 response.key = chosen_side;   // 'left' or 'right'
@@ -435,6 +448,13 @@ var jsPsychReversal = (function (jspsych) {
             // Start the response-deadline clock. trialOnset is reset to the reveal moment so
             // RT is measured from actual stimulus visibility, not DOM creation.
             var startDeadline = () => {
+                // The decode() promise can settle after the trial is already over (an aborted
+                // run, or a decode slower than the rest of the trial). Arming a deadline then
+                // would leave a timer jsPsych's own end-of-trial cleanup has already passed,
+                // free to fire during a later trial.
+                if (cleaned) return;
+
+                revealed = true;
                 trialOnset = performance.now();
                 viewportWidth = window.innerWidth;
                 viewportHeight = window.innerHeight;

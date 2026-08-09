@@ -252,3 +252,66 @@ test('reversal records a missed response but waits to start the next trial while
     timeout: 5000,
   });
 });
+
+test('a response before the stimulus is revealed is ignored', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'Pixel 7 landscape', 'one phone project is sufficient for reveal coverage');
+
+  // Force the slow-image branch of the reveal. When create_stimuli's images aren't decoded
+  // yet, the stimulus is held at opacity 0 until img.decode() resolves - but the tap zones
+  // still take taps at opacity 0, and the keyboard listener never cared about visibility.
+  // no-store is what makes each trial re-fetch rather than reuse the preloaded copy.
+  let delayImages = false;
+  await page.route('**/assets/images/reversal/**', async (route) => {
+    if (delayImages) await new Promise((resolve) => setTimeout(resolve, 2500));
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: { ...response.headers(), 'cache-control': 'no-store, no-cache, must-revalidate' }
+    });
+  });
+
+  await page.goto('/examples/reversal.html?participant_id=pre-reveal-check');
+  await page.getByRole('button', { name: 'Got it' }).click();
+  await page.locator('#jspsych-instructions-next').click();
+  await page.locator('#jspsych-instructions-next').click();
+
+  delayImages = true;
+  await page.locator('#rev-tap-left').tap();
+
+  const stimulus = page.locator('.reversal-stimuli');
+  await expect(stimulus).toBeAttached({ timeout: 15000 });
+  await expect(stimulus, 'the stimulus should still be hidden while decoding').toHaveCSS('opacity', '0');
+
+  // Answering the screen the participant cannot see. Checked as a point-in-time snapshot
+  // rather than a retrying matcher: a negative assertion that auto-retries passes on its
+  // first poll, before the coin animation this is meant to catch has had a frame to run.
+  await page.keyboard.press('ArrowLeft');
+  await page.waitForTimeout(500);
+  const afterEarlyPress = await page.evaluate(() => ({
+    coinOpacity: getComputedStyle(document.getElementById('rev-coin-left')).opacity,
+    recorded: window.jsPsych.data.get().values().filter((trial) => trial.trial_type === 'reversal').length
+  }));
+  expect(afterEarlyPress, 'a pre-reveal response must not be taken or recorded').toEqual({
+    coinOpacity: '0',
+    recorded: 0
+  });
+
+  // Once visible, the same input is accepted as normal
+  await expect(stimulus).toHaveCSS('opacity', '1', { timeout: 15000 });
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#rev-coin-left'), 'a post-reveal response is taken').toHaveCSS('opacity', '1');
+
+  await expect
+    .poll(() => page.evaluate(() =>
+      window.jsPsych.data.get().values().filter((trial) => trial.trial_type === 'reversal').length
+    ), { timeout: 15000 })
+    .toBe(1);
+
+  const [result] = await page.evaluate(() =>
+    window.jsPsych.data.get().values().filter((trial) => trial.trial_type === 'reversal')
+  );
+  // A stale deadline used to fire after the early response, finishing the trial a second time
+  // and flipping this flag on the duplicate - which feeds reversal_n_warnings and kick-out.
+  expect(result).toMatchObject({ response: 'left', response_deadline_warning: false });
+  expect(result.rt, 'RT is measured from the reveal, not from the ignored press').toBeGreaterThan(0);
+});

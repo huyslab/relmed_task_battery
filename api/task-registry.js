@@ -10,6 +10,8 @@ import { createControlTimeline, computeRelativeControlBonus } from '@tasks/contr
 import { createOpenTextTimeline } from '@tasks/open-text/index.js';
 import { createReversalTimeline, computeRelativeReversalBonus } from '@tasks/reversal/index.js';
 import { createAcceptabilityTimeline } from '@tasks/acceptability-judgment/index.js';
+import { createMedicationQuestionnaireTimeline } from '@tasks/medication-questionnaire/index.js';
+import { createSelfReportTimeline } from '@tasks/self-report/index.js';
 
 export const TaskRegistry = {
   PILT: {
@@ -23,7 +25,6 @@ export const TaskRegistry = {
         valence: "mixed",
         present_pavlovian: true,
         include_instructions: true,
-        sequence: 'wk0',
         session: 'wk0'
     },
     sequences: {
@@ -52,7 +53,6 @@ export const TaskRegistry = {
         valence: "Valence of the stimuli - can be 'both' (includes both punishment and reward blocks), 'mixed' (includes mixed valence blocks), 'punishment', or 'reward'. Default is 'mixed'.",
         present_pavlovian: "Whether to present stimuli for pavlovian conditioning along with trial outcomes. Default is true.",
         include_instructions: "Whether to show instructions before the task. Default is true.",
-        sequence: "The key for the sequence to use for the learning phase. Default is 'wk0'.",
         session: "Session identifier to govern session-specific behaviour. Default is 'wk0'. Should be deprecated, with settings exposed."
     }
   },
@@ -67,7 +67,6 @@ export const TaskRegistry = {
         valence: "reward",
         present_pavlovian: false,
         include_instructions: true,
-        sequence: 'wk0',
         session: 'wk0'
     },
     sequences: {
@@ -95,7 +94,6 @@ export const TaskRegistry = {
         valence: "Valence of the stimuli - can be 'both' (includes both punishment and reward blocks), 'mixed' (includes mixed valence blocks), 'punishment', or 'reward'. Default is 'mixed'.",
         present_pavlovian: "Whether to present stimuli for pavlovian conditioning along with trial outcomes. Default is true.",
         include_instructions: "Whether to show instructions before the task. Default is true.",
-        sequence: "The key for the sequence to use for the learning phase. Default is 'wk0'.",
         session: "Session identifier to govern session-specific behaviour. Default is 'wk0'. Should be deprecated, with settings exposed."
     }
   },
@@ -106,7 +104,7 @@ export const TaskRegistry = {
     defaultConfig: {
         task_name: "pilt_test",
         test_confidence_every: 4,
-        sequence: 'wk0'
+        session: 'wk0'
     },
     requirements: {
       css: ['@tasks/card-choosing/styles.css'],
@@ -124,7 +122,6 @@ export const TaskRegistry = {
     configOptions: {
         task_name: "The name of the test phase - can be 'pilt_test' or 'wm_test'. Default is 'pilt_test'.",
         test_confidence_every: "How often (in trials) to elicit confidence ratings in the test phase. Default is every 4 trials.",
-        sequence: "The key for the sequence to use for the test phase - should match the learning phase. Default is 'wk0'.",
     }
   },
   post_WM_test: {
@@ -134,7 +131,7 @@ export const TaskRegistry = {
     defaultConfig: {
         task_name: "wm_test",
         test_confidence_every: 4,
-        sequence: 'wk0'
+        session: 'wk0'
     },
     requirements: {
       css: ['@tasks/card-choosing/styles.css'],
@@ -152,7 +149,6 @@ export const TaskRegistry = {
     configOptions: {
         task_name: "The name of the test phase - can be 'pilt_test' or 'wm_test'. Default is 'wm_test'.",
         test_confidence_every: "How often (in trials) to elicit confidence ratings in the test phase. Default is every 4 trials.",
-        sequence: "The key for the sequence to use for the test phase - should match the learning phase. Default is 'wk0'.",
     }
   },
   vigour_test: {
@@ -179,8 +175,9 @@ export const TaskRegistry = {
     defaultConfig: {
       task_name: "reversal",
       n_trials: 150,
-      sequence: 'wk0',
-      session: 'wk0'
+      session: 'wk0',
+      preferredOrientation: "landscape",
+      pauseTimelineOnWrongOrientation: true
     },
     sequences: {
         screening: '@tasks/reversal/sequences/trial1_screening.js',
@@ -199,8 +196,9 @@ export const TaskRegistry = {
     configOptions: {
         task_name: "The name of the task as it would appear in the bonus object. Default is 'reversal'.",
         n_trials: "Total number of trials in the reversal task. Default is 150.",
-        sequence: "The key for the sequence to use for the reversal task. Default is 'wk0'.",
-        session: "Session identifier to govern session-specific behaviour. Default is 'wk0'. Should be deprecated, with settings exposed."
+        session: "Session identifier to govern session-specific behaviour. Default is 'wk0'. Should be deprecated, with settings exposed.",
+        preferredOrientation: "Preferred device orientation on phones ('portrait' or 'landscape'). On a phone held in the other orientation, a 'please rotate' overlay blocks the task until it is rotated; tablets and desktop are exempt. Default is 'landscape' for reversal.",
+        pauseTimelineOnWrongOrientation: "Whether the timeline should wait before starting the next trial while the phone is held in the wrong orientation. The active trial and its response deadline continue running. Default is true for reversal."
     }
   },
   delay_discounting: {
@@ -230,9 +228,11 @@ export const TaskRegistry = {
     computeBonus: () => computeRelativePiggyTasksBonus('vigour_trial'), 
     defaultConfig: {
       task_name: "vigour",
+      preferredOrientation: "portrait",
     },
     configOptions: {
-      task_name: "The name of the task as it would appear in the bonus object. Default is 'vigour'."
+      task_name: "The name of the task as it would appear in the bonus object. Default is 'vigour'.",
+      preferredOrientation: "Preferred device orientation on phones ('portrait' or 'landscape'). On a phone held in the other orientation, a 'please rotate' overlay blocks the task until it is rotated; tablets and desktop are exempt. Default is 'portrait' for vigour."
     },
     requirements: {
       css: ['@tasks/piggy-banks/styles.css'],
@@ -373,6 +373,66 @@ export const TaskRegistry = {
         enabled: true,
     }
   },
+  medication_questionnaire: {
+    name: 'Medication Questionnaire',
+    description: 'A short touchscreen questionnaire about the medication the participant was invited to the study for, asked at the start of a session',
+    createTimeline: createMedicationQuestionnaireTimeline,
+    computeBonus: () => 0, // No bonus computation for this task
+    defaultConfig: {
+      task_name: "medication_questionnaire",
+      include_intro: true,
+      allow_unsure: true,
+      max_pill_buttons: 5,
+      earliest_year: 1970,
+      transition_duration: 350,
+      input_mode: "auto"
+    },
+    configOptions: {
+      task_name: "The name of the task, used for state updates and data field prefixes. Default is 'medication_questionnaire'.",
+      include_intro: "Whether to open with a short welcome screen explaining the questionnaire. Default is true.",
+      allow_unsure: "Whether the medicine name and dose questions offer an \"I'm not sure\" button, which records a missing answer rather than blocking the participant. Default is true.",
+      max_pill_buttons: "Pills-per-day is answered with buttons 1 to this number minus one, plus an 'N or more' button that opens a keypad. Default is 5.",
+      earliest_year: "Earliest year offered in the start date question. Default is 1970.",
+      transition_duration: "Duration of the slide transition between questions, in milliseconds. Default is 350.",
+      input_mode: "Which controls to show: 'touch' for tap targets and an on-screen keypad, 'keyboard' for typed entry on a machine with a mouse and keyboard, or 'auto' to pick from the device. Default is 'auto'."
+    },
+    requirements: {
+      css: ['@tasks/medication-questionnaire/styles.css'],
+    },
+    resumptionRules: {
+        enabled: false,
+    }
+  },
+  self_report: {
+    name: 'Self-Report Questionnaires',
+    description: 'Touchscreen self-report questionnaires (PHQ-9, GAD-7), asked one item per screen',
+    createTimeline: createSelfReportTimeline,
+    computeBonus: () => 0, // No bonus computation for this task
+    defaultConfig: {
+      task_name: "self_report",
+      questionnaires: ["PHQ9", "GAD7"],
+      include_intro: true,
+      save_every: 5,
+      transition_duration: 350,
+      input_mode: "auto"
+    },
+    configOptions: {
+      task_name: "The name of the task, used for state updates and the intro screen's data field. Default is 'self_report'.",
+      questionnaires: "Which questionnaires to ask, in order. Available: 'PHQ9', 'GAD7'. Default is ['PHQ9', 'GAD7'].",
+      include_intro: "Whether to open with a screen introducing the set of questionnaires. Each questionnaire always shows its own instructions. Default is true.",
+      save_every: "Save to REDCap after every this many items. Each questionnaire also saves when it finishes. Default is 5.",
+      transition_duration: "Duration of the slide transition between items, in milliseconds. Default is 350.",
+      input_mode: "Which controls to show: 'touch' for tap targets, 'keyboard' to also drive the options with the arrow and number keys, or 'auto' to pick from the device. Default is 'auto'."
+    },
+    requirements: {
+      css: ['@tasks/self-report/styles.css'],
+    },
+    resumptionRules: {
+        // Disabled for the same reason as the medication questionnaire: a resumed run would
+        // skip items whose answers were never recorded, leaving an unscorable questionnaire.
+        enabled: false,
+    }
+  },
   acceptability_judgment: {
     name: 'Acceptability Judgment',
     description: 'Measure participant acceptability of a preceding task',
@@ -410,4 +470,3 @@ export const globalConfigOptions = {
     interimWarning: "Show message about abiding by instructions after participant receives this many warnings in a task. Default is 5.",
     finalWarning: "Show message about abiding by instructions after participant receives this many warnings in a task. Default is 15."
 }
-

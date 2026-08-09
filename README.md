@@ -24,6 +24,8 @@ The battery currently includes the following experimental tasks:
 ### Miscellaneous Tasks
 - **Delay Discounting** - Measures preferences for smaller-sooner vs larger-later monetary rewards
 - **Open Text** - Collects open-ended text responses with customizable time limits and validation
+- **Medication Questionnaire** - Touchscreen questionnaire about the participant's medication, asked at the start of a session
+- **Self-Report Questionnaires** - PHQ-9 and GAD-7, asked one item per screen on a touchscreen
 
 ## Repository Structure
 
@@ -41,9 +43,11 @@ relmed_task_battery/
 │   ├── control/                 # Control task
 │   ├── delay-discounting/       # Delay discounting task
 │   ├── max-press-test/          # Max press speed test
+│   ├── medication-questionnaire/ # Touchscreen medication questionnaire
 │   ├── open-text/               # Open text questions
 │   ├── pavlovian-lottery/       # Pavlovian conditioning
-│   └── piggy-banks/             # Vigour and PIT tasks
+│   ├── piggy-banks/             # Vigour and PIT tasks
+│   └── self-report/             # PHQ-9 and GAD-7 questionnaires
 ├── core/                        # Shared utilities and jsPsych
 │   ├── utils/                   # Common utility functions
 │   └── jspsych/                 # jsPsych library and plugins
@@ -101,6 +105,7 @@ Modules are predefined collections of tasks designed to be completed in a single
 #### Available Modules
 
 - **`full_battery`**: Complete RELMED task battery with all tasks and questionnaires
+- **`pilot_1`** and **`pilot_2`**: The mymeds pilot, run as two modules in one visit
 - **`screening`**: Shortened version for participant screening with key tasks
 
 #### Using Modules
@@ -110,7 +115,7 @@ Modules are predefined collections of tasks designed to be completed in a single
 import { createModuleTimeline, getModuleInfo, listModules } from '/api/index.js';
 
 // Get information about available modules
-console.log(listModules()); // ['full_battery', 'screening']
+console.log(listModules()); // ['full_battery', 'pilot_1', 'pilot_2', 'screening']
 console.log(getModuleInfo('screening')); // Detailed module information
 
 // Create timeline for a module
@@ -135,8 +140,7 @@ Modules support three levels of configuration (in order of precedence):
 {
     name: "Screening Module",
     moduleConfig: {           // Applied to all tasks
-        session: "screening",
-        sequence: "screening"
+        max_instruction_fails: 5
     },
     elements: [
         { type: "task", name: "PILT", config: { present_pavlovian: false } }, // Task-specific config
@@ -146,9 +150,13 @@ Modules support three levels of configuration (in order of precedence):
 
 // Runtime configuration overrides everything
 const timeline = await createModuleTimeline('screening', {
-    session: 'custom_session'  // This will override moduleConfig.session
+    session: 'wk2'  // Applied to every task in the module
 });
 ```
+
+Note that `session` is not something a module declares. `experiment.html` resolves it from the
+launch URL and passes it as runtime config, so one module definition serves every session the
+study runs - see [Sessions](#sessions) below.
 
 #### Creating Custom Modules
 
@@ -187,6 +195,8 @@ export const ModuleRegistry = {
 - **Control**: Requires multiple control plugins and `styles.css`
 - **Vigour/PIT**: Requires piggy-banks plugins and `styles.css`
 - **Delay Discounting**: Requires only core plugins and `styles.css`
+- **Medication Questionnaire**: Requires `plugin-medication-question.js` and `styles.css`
+- **Self-Report Questionnaires**: Requires `plugin-self-report-item.js` and `styles.css`
 
 ### Task Configuration
 
@@ -257,13 +267,96 @@ Use these exact strings when calling `createTaskTimeline()`:
 - `'PILT'`, `'WM'`, `'post_learning_test'`, `'post_PILT_test'`, `'post_WM_test'`
 - `'delay_discounting'`, `'vigour'`, `'vigour_test'`, `'PIT'` 
 - `'control'`, `'max_press_test'`, `'pavlovian_lottery'`, `'open_text'`
-- `'reversal'`, `'acceptability_judgment'`
+- `'reversal'`, `'acceptability_judgment'`, `'medication_questionnaire'`, `'self_report'`
 
 ### Module Names
 
 Use these exact strings when calling `createModuleTimeline()`:
 - `'full_battery'` - Complete RELMED task battery 
+- `'pilot_1'` - Medication questionnaire, then reversal and its acceptability rating
+- `'pilot_2'` - Vigour and its acceptability rating, then the PHQ-9 and GAD-7 questionnaires
 - `'screening'` - Shortened screening version
+
+`pilot_1` and `pilot_2` are the two halves of one mymeds pilot visit, sat one after the other.
+They are separate modules so a participant can stop between them, and so each ends with its own
+bonus reveal and data upload. Each pays up to £2.50 (`max_bonus`), half of what the single
+pilot module paid across both games, so completing both earns the same £3-£5 as before.
+
+### Launching a Session
+
+`experiment.html` is the entry point a hosting website loads, and it runs either a module or a
+single task:
+
+| Parameter | Description |
+| --- | --- |
+| `module` | Name of a module to run, e.g. `module=pilot_1`. Takes precedence: when both are given, `task` is ignored |
+| `task` | Name of a single task to run, e.g. `task=reversal`. The task's bonus is revealed at the end |
+| `participant_id` | Participant identifier. Containing `simulate` runs jsPsych's simulate mode, `debug` or `TST` relaxes the termination guard |
+| `context` | `relmed` (also used for mymeds) or `prolific` - governs where data is submitted |
+| `session` | Session label from the hosting site, e.g. `Session 1` or `Week 0`. Required, and must resolve against the session registry - see [Sessions](#sessions) |
+
+`index.html` provides a form that builds these URLs for local runs.
+
+## Sessions
+
+A session is what the study is running today: which trial sequences load, which stimulus set
+is shown, which variant of the rules and instructions participants get, and how resumption is
+signalled back to the hosting site. All of that comes from one place,
+[`api/session-registry.js`](api/session-registry.js).
+
+The hosting site sends a **label** (`Session 2`, `Week 2`, `Training`). `experiment.html`
+resolves that label to a **canonical session key** exactly once, at launch, and the key is
+then applied to every task in the run - single task or whole module alike. Six keys exist:
+`screening`, `wk0`, `wk2`, `wk4`, `wk24`, `wk28`.
+
+Resolution accepts, in order: the raw key (`wk2`), an alias a session declares (`Training` →
+`screening`), a week label (`Week 2` → `wk2`), and an ordinal (`Session 2` → the session whose
+`order` is 2). `Session N` follows the `order` field, not position in the file, and `screening`
+has `order: null` so it never answers to an ordinal. **A label that doesn't resolve stops the
+run before any task loads**, with an error listing what is accepted.
+
+### What the registry controls
+
+| Field | Controls |
+| --- | --- |
+| `aliases`, `order` | Which hosting-site labels resolve to this session |
+| `name` | How the session is described in error messages |
+| `variant` | `screening` vs `full`: rule sets, instruction wording, coin values, practice length |
+| `stimulusSet` | The asset folder segment for pavlovian, control, card-choosing and PIT images |
+| `resumePolicy` | `standard` vs `restricted`: which resumption signal open-text and WM send to the site |
+| the key itself | Which trial sequence each task loads, via that task's own `sequences` map |
+
+Tasks read these through `settings.sessionInfo` (attached once in `createTaskTimeline`), so no
+task compares session names itself.
+
+### What is *not* in the registry
+
+Adding or changing a session means adding an entry **and** working through this list. None of
+it is enforced by the registry:
+
+- **Asset folders must exist** for the `stimulusSet`: `assets/images/pavlovian-stims/<set>/`
+  and `assets/images/control/session-specific/<set>/`. A missing folder shows up as a 404
+  mid-task, not as a startup error. Known gap: `pavlovian-stims/` has no `screening` folder
+  while control's does - harmless only because no screening run reaches pavlovian stimuli.
+- **Sequence files must exist** for the new key in every task with a `sequences` map: PILT,
+  WM, both post-learning tests, reversal. A task with a `sequences` map and no entry for the
+  running session throws at setup, so a half-added session fails loudly rather than mid-run.
+  WM and the post-learning tests deliberately have no `screening` sequence.
+- **Control's per-session tables** stay in [`tasks/control/configuration.js`](tasks/control/configuration.js):
+  the island fruit names (`i1_name`) are keyed by session key and need a new entry. The
+  `baseRule` / `controlRule` maps switch on `variant` and need nothing.
+- **Random seeds.** `shuffleArray(..., settings.session)` in card-choosing instructions seeds
+  practice-trial order from the session key, so renaming an existing key silently changes what
+  participants saw. Keys are append-only in practice.
+- **A new `variant` is a code change.** Adding a session that reuses `screening` or `full`
+  needs no task edits; introducing a third variant means revisiting the branches in
+  card-choosing, control and reversal.
+- **The hosting site is the other half of the contract.** `aliases` and `order` have to match
+  the labels My RELMED and mymeds actually send; adding a key here doesn't make a site offer it.
+- **REDCap.** `window.session` stays the raw label the site sent, so existing exports are
+  unchanged. The resolved key is recorded alongside it in the trial data as `session_key`.
+- **Modules can't pin a session.** A module that must always run one specific session is not
+  expressible - the launch URL decides. That would need a new mechanism.
 
 ## Examples
 
@@ -302,3 +395,23 @@ const fullTimeline = [
     exitFullscreen
 ];
 ```
+
+## Testing
+
+Cross-device checks for the vigour, reversal, medication questionnaire and self-report tasks live under `validation/playwright/`, in two parts:
+
+- **Rendering matrix** (`*-rendering.spec.js`, `support/render-check.js`): runs each task (via its page in `examples/`, driven by jsPsych's simulate mode) across all 21 device projects - common phones, tablets, and desktop browsers - asserting it actually renders (no console errors, no collapsed/overflowing layout, the orientation "please rotate" gate shows only where expected). A task can add its own assertions through `extraChecks` - the questionnaire uses this to check that each screen commits to exactly one input mode and renders only that mode's controls.
+- **Journey checks** (`*-journey.spec.js`, `support/journey-check.js`): drives a real (non-simulate) run - real clicks/taps/keypresses through the actual flow - on a small curated subset of 5 devices, to deterministically capture checkpoints simulate mode can't reliably land on, since it auto-advances through everything. For vigour and reversal that is the static instructions text and an in-task feedback/coin moment; for the medication questionnaire it is all five questions answered on whichever path the device was given (keypad and taps, or typed field and keyboard), and for the self-report battery every item of both questionnaires, answered by tap or by number key - both read the recorded answers back out of jsPsych at the end.
+
+Both save a screenshot per device/checkpoint to `validation/playwright/screenshots/`.
+
+Per-task settings (page URL, preferred orientation, the selector that pins the real trial) live in `support/task-config.js`. A task with no `preferredOrientation` is never orientation-gated, which is how both questionnaires are treated.
+
+```bash
+npm install
+npx playwright install        # first time only, downloads browser binaries
+npm run test:e2e              # run everything (rendering matrix + journeys)
+npm run test:e2e:report       # browse the last run's HTML report (includes screenshots)
+```
+
+Run a subset with `npx playwright test --project="iPhone 14"` or `--project="iPhone 14 (journey)"` (see `playwright.config.js` for the full device list).

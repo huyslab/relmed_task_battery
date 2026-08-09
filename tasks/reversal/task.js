@@ -8,14 +8,14 @@
 
 // This files creates the jsPsych timeline for the reversal task block
 
-import { 
-    createPreloadTrial, 
-    createPressBothTrial, 
-    kickOut, 
-    fullscreen_prompt, 
-    canBeWarned, 
-    updateState, 
-    updateBonusState, 
+import {
+    createPreloadTrial,
+    createPressBothTrial,
+    kickOut,
+    fullscreen_prompt,
+    canBeWarned,
+    updateState,
+    updateBonusState,
     saveDataREDCap } from "@utils/index.js"
 
 // First preload for task
@@ -168,43 +168,136 @@ function generateReversalBlocks(settings) {
  * @returns {Array} Array of jsPsych instruction trials
  */
 function reversalInstructions(settings) {
-    return [
-        {
-            type: jsPsychInstructions,
-            css_classes: ['instructions'],
-            pages: [
-                // Welcome message (conditional on session type)
-                `${settings.session !== "screening" ? "<p>Let's start with the first game!</p>" : ""}
-                <p>Next, you will meet two friendly squirrels, each with a bag of coins to share. 
-                Use the arrow keys to choose either the left or right squirrel. 
-                The squirrel you pick will give you a coin to add to your safe.</p>`,
-                // Task explanation
-                `<p>One squirrel has higher-value coins, and the other has lower-value coins. 
+    var _revReadyCleanup = null;
+    var touchCapable = navigator.maxTouchPoints > 0;
+
+    var sessionPrefix = settings.sessionInfo.variant !== 'screening' ? "<p>Let's start with the first game!</p>" : "";
+    var duration = settings.n_trials == 50 ? "three" : "five";
+
+    var pageRules = `<p>One squirrel has higher-value coins, and the other has lower-value coins.
                 But every few turns they secretly switch bags.</p>
-                <p>Your goal is to figure out which squirrel has the better coins and collect as many high-value ones as possible.<p>`
-            ],
-            show_clickable_nav: true,
-            data: {trialphase: "reversal_instruction"},
-            on_start: () => {
-                updateState(`reversal_instructions_start`)
-            },
-            on_finish: () => {
-                // Set no-resume period for non-screening sessions
-                if (settings.session !== "screening") {
-                    updateState(`no_resume_10_minutes`)
+                <p>Your goal is to figure out which squirrel has the better coins and collect as many high-value ones as possible.</p>`;
+
+    var squirrelHtml =
+        `<div class="reversal-stimuli">
+            <div class="rev-squirrel-empty">
+                <img src="./assets/images/reversal/squirrels_empty.png" alt="Two squirrels in a forest"></img>
+            </div>
+            <div class="rev-squirrel-bg">
+                <img src="./assets/images/reversal/squirrels_bg.png" alt=""></img>
+            </div>
+            <div class="rev-squirrel-fg">
+                <img src="./assets/images/reversal/squirrels_fg.png" alt=""></img>
+            </div>`;
+
+    // --- Shared instruction trial (pages differ by input modality) ---
+    var instructionTrial = {
+        type: jsPsychInstructions,
+        css_classes: ['instructions'],
+        pages: touchCapable ? [
+            `${sessionPrefix}
+            <p>Next, you will meet two friendly squirrels, each with a bag of coins to share.
+            Tap on either the left or right squirrel to choose one.
+            The squirrel you pick will give you a coin to add to your safe.</p>`,
+            pageRules
+        ] : [
+            `${sessionPrefix}
+            <p>Next, you will meet two friendly squirrels, each with a bag of coins to share.
+            Use the arrow keys to choose either the left or right squirrel.
+            The squirrel you pick will give you a coin to add to your safe.</p>`,
+            pageRules
+        ],
+        show_clickable_nav: true,
+        data: {trialphase: "reversal_instruction"},
+        on_start: () => { updateState(`reversal_instructions_start`) },
+        on_finish: () => {
+            if (settings.sessionInfo.variant !== 'screening') {
+                updateState(`no_resume_10_minutes`)
+            }
+            updateState(`reversal_task_start`)
+        }
+    };
+
+    // --- Touch ready screen: tap either squirrel ---
+    var touchReadyTrial = {
+        type: jsPsychHtmlKeyboardResponse,
+        choices: 'NO_KEYS',
+        stimulus: squirrelHtml +
+            `<div id="rev-tap-left" class="rev-tap-zone rev-tap-left"></div>
+            <div id="rev-tap-right" class="rev-tap-zone rev-tap-right"></div>
+            </div>
+            <p style="text-align:center;margin-top:1.2em;max-width:600px;margin-left:auto;margin-right:auto;">
+                You will now play the squirrel game for about ${duration} minutes without breaks.
+            </p>
+            <p style="text-align:center;max-width:600px;margin-left:auto;margin-right:auto;">
+                When you're ready, <strong>tap either squirrel</strong> to begin.
+            </p>`,
+        data: { trialphase: "reversal_instruction" },
+        on_load: function () {
+            var finished = false;
+            var finishOnce = function () {
+                if (finished) return;
+                finished = true;
+                jsPsych.finishTrial({ response: 'b' });
+            };
+            var tapHandler = function (event) {
+                if (!event.isPrimary || event.button !== 0) return;
+                event.preventDefault();
+                finishOnce();
+            };
+            var suppressContext = function (e) { e.preventDefault(); };
+            var tapLeft = document.getElementById('rev-tap-left');
+            var tapRight = document.getElementById('rev-tap-right');
+            if (tapLeft) {
+                tapLeft.addEventListener('pointerdown', tapHandler);
+                tapLeft.addEventListener('contextmenu', suppressContext);
+            }
+            if (tapRight) {
+                tapRight.addEventListener('pointerdown', tapHandler);
+                tapRight.addEventListener('contextmenu', suppressContext);
+            }
+            _revReadyCleanup = function () {
+                if (tapLeft) {
+                    tapLeft.removeEventListener('pointerdown', tapHandler);
+                    tapLeft.removeEventListener('contextmenu', suppressContext);
                 }
-                updateState(`reversal_task_start`)    
+                if (tapRight) {
+                    tapRight.removeEventListener('pointerdown', tapHandler);
+                    tapRight.removeEventListener('contextmenu', suppressContext);
+                }
+            };
+            if (window.simulating) {
+                var target = tapLeft || tapRight;
+                if (target) {
+                    jsPsych.pluginAPI.setTimeout(function () {
+                        target.dispatchEvent(new PointerEvent('pointerdown', {
+                            bubbles: true, isPrimary: true, pointerType: 'touch', button: 0
+                        }));
+                    }, 100);
+                }
             }
         },
-        // Ready screen with key placement instructions
-        createPressBothTrial(`
-            <p>You will now play the squirrel game for about ${settings.n_trials == 50 ? "three" : "five"} minutes without breaks.</p>
-            <p>When you're ready, place your fingers comfortably on the <strong>left and right arrow keys</strong> as shown below. Press down <strong> both left and right arrow keys at the same time </strong> to begin.</p>
-            <img src='./assets/images/2_finger_keys.jpg' style='width:250px;'></img>`,
-            "reversal_instruction"
-        )
-    ]
-} 
+        on_finish: function () {
+            if (_revReadyCleanup) {
+                _revReadyCleanup();
+                _revReadyCleanup = null;
+            }
+            jsPsych.pluginAPI.cancelAllKeyboardResponses();
+            jsPsych.data.addProperties({ reversal_n_warnings: 0 });
+        }
+    };
+
+    // --- Keyboard ready screen: press both arrow keys simultaneously (original behaviour) ---
+    var keyboardReadyTrial = createPressBothTrial(
+        `<p>You will now play the squirrel game for about ${duration} minutes without breaks.</p>
+        <p>When you're ready, place your fingers comfortably on the <strong>left and right arrow keys</strong> as shown below.
+        Press down <strong>both left and right arrow keys at the same time</strong> to begin.</p>
+        <img src='./assets/images/2_finger_keys.jpg' style='width:250px;'>`,
+        "reversal_instruction"
+    );
+
+    return [instructionTrial, touchCapable ? touchReadyTrial : keyboardReadyTrial];
+}
 
 /**
  * Calculates relative bonus earnings for the reversal task

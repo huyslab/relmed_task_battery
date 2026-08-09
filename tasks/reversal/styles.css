@@ -1,9 +1,27 @@
 .reversal-stimuli {
     position: relative;
-    width: 80vw; /* 80% of the viewport width */
-    padding-top: 40.30%;
-    max-width: 800px; /* Maximum size */
+    width: 80vw; /* default: desktop / tablet */
+    max-width: 800px;
+    aspect-ratio: 800 / 322; /* matches the squirrel image dimensions exactly */
     margin: 0 auto; /* Center horizontally */
+}
+
+/* Fallback for browsers without aspect-ratio support (pre-2021). All children are
+   absolutely positioned, so without an explicit height the container collapses to 0
+   and the stimuli vanish. Reinstate the padding-top ratio hack; padding-top is
+   width-relative, so it also tracks the 60vw phone width below. */
+@supports not (aspect-ratio: 1 / 1) {
+    .reversal-stimuli {
+        padding-top: 40.25%; /* 322 / 800, matches the aspect-ratio above */
+    }
+}
+
+/* Phone screens: shrink the squirrels to leave breathing room for
+   Dynamic Island, Home Indicator, and browser chrome on notched iPhones */
+@media (max-height: 500px), (max-width: 500px) {
+    .reversal-stimuli {
+        width: 60vw;
+    }
 }
 
 .rev-squirrel-bg, .rev-squirrel-fg, .rev-squirrel-empty {
@@ -32,9 +50,9 @@
 .rev-coin-side {
     position: absolute;
     top: 60%;
-    z-index: 2; /* On top of background */
-    width: 8vw;
-    max-width: 80px;
+    z-index: 2; /* Behind foreground squirrel (z-index 3); animation lifts coin above */
+    width: 10%; /* container-relative so coin scales with stimuli on all viewport sizes */
+    opacity: 0; /* hidden until response; revealed by triggerCoinAnimation */
 }
 
 .rev-coin-side img {
@@ -121,4 +139,38 @@
   background: white;
   font-size: larger;
   font-weight: bold;
+}
+
+/* --- Touch/pointer tap zones for left/right squirrel selection --- */
+.rev-tap-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 38%;
+  /* How far each zone reaches from the background edge into the side margin:
+     0 = flush with the image, 1 = all the way to the screen edge. The remaining
+     outer margin nearest the screen stays a dead buffer (no stray edge touches). */
+  --tap-extend: 0.2;
+  z-index: 15;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Transparent — invisible but tappable */
+}
+
+/* Outer edge extends --tap-extend of the way into the side margin (see above); inner
+   edge stays at 38% of the stimulus. (50% - 50vw) = -(side margin) for the centered
+   container, so this self-adjusts across the 80vw / 60vw breakpoints and max-width cap.
+   To make the zones wider/narrower, change --tap-extend only. */
+.rev-tap-left {
+  left: calc(var(--tap-extend) * (50% - 50vw));
+  width: calc(38% - var(--tap-extend) * (50% - 50vw));
+}
+
+.rev-tap-right {
+  right: calc(var(--tap-extend) * (50% - 50vw));
+  width: calc(38% - var(--tap-extend) * (50% - 50vw));
 }

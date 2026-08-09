@@ -28,7 +28,7 @@ export const PITPreloadImages = (settings) => {
       // Pavlovian background stimuli (session-specific)
       [
         "PIT1.png", "PIT2.png", "PIT3.png", "PIT4.png", "PIT5.png", "PIT6.png"
-      ].map(s => "./assets/images/pavlovian-stims/" + settings.session + "/" + s)
+      ].map(s => "./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/" + s)
     ].flat(); // Assuming vigour stimulus were already preloaded
 }
 
@@ -56,7 +56,7 @@ function generatePITstimulus(coin, ratio, settings) {
     "-0.5": "PIT5.png"
   };
   // Convert to full paths with session-specific directory
-  PIT_imgs = Object.fromEntries(Object.entries(PIT_imgs).map(([k, v]) => [k, "./assets/images/pavlovian-stims/" + settings.session + "/" + v]));
+  PIT_imgs = Object.fromEntries(Object.entries(PIT_imgs).map(([k, v]) => [k, "./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/" + v]));
   PIT_imgs["0"] = ""; // No background for neutral trials
   
   const piggyBgImg = PIT_imgs[coin];

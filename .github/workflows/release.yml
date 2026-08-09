@@ -14,6 +14,12 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    env:
+      SEMANTIC_RELEASE_VERSION: 25.0.5
+      SEMREL_CHANGELOG_VERSION: 6.0.3
+      SEMREL_EXEC_VERSION: 7.1.0
+      SEMREL_GIT_VERSION: 10.0.1
+      SEMREL_GITHUB_VERSION: 12.0.9
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,13 +32,29 @@ jobs:
         with:
           node-version: 'lts/*'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Verify integrity of dependencies
-        run: npm audit signatures
+      - name: Verify release package signatures
+        # The repository doesn't include a package-lock.json, so we verify
+        # signatures using a temporary lockfile in /tmp.
+        run: |
+          mkdir -p /tmp/release-tools
+          cd /tmp/release-tools
+          npm init -y
+          npm install --ignore-scripts \
+            semantic-release@${SEMANTIC_RELEASE_VERSION} \
+            @semantic-release/changelog@${SEMREL_CHANGELOG_VERSION} \
+            @semantic-release/exec@${SEMREL_EXEC_VERSION} \
+            @semantic-release/git@${SEMREL_GIT_VERSION} \
+            @semantic-release/github@${SEMREL_GITHUB_VERSION}
+          npm audit signatures
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}  # Use PAT here too
-        run: npx semantic-release
+        run: |
+          npx -y \
+            -p semantic-release@${SEMANTIC_RELEASE_VERSION} \
+            -p @semantic-release/changelog@${SEMREL_CHANGELOG_VERSION} \
+            -p @semantic-release/exec@${SEMREL_EXEC_VERSION} \
+            -p @semantic-release/git@${SEMREL_GIT_VERSION} \
+            -p @semantic-release/github@${SEMREL_GITHUB_VERSION} \
+            semantic-release

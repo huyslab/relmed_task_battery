@@ -81,7 +81,7 @@ export function createCardChoosingTimeline(settings) {
         };
       } else if (settings.task_name === "wm") {
         task_blocks[0]["on_start"] = () => {
-          if (!(["wk24", "wk28"].includes(settings.session))) {
+          if (settings.sessionInfo.resumePolicy !== 'restricted') {
             updateState("no_resume_10_minutes");
           }
           updateState("wm_task_start");
@@ -118,8 +118,8 @@ export function createPostLearningTestTimeline(settings) {
     if (pav_test_structure) {
       pav_test_structure.forEach(trial => {
         // Set pavlovian-specific paths and properties
-        trial.stimulus_left = `./assets/images/pavlovian-stims/${settings.session}/${trial.stimulus_left}`;
-        trial.stimulus_right = `./assets/images/pavlovian-stims/${settings.session}/${trial.stimulus_right}`;
+        trial.stimulus_left = `./assets/images/pavlovian-stims/${settings.sessionInfo.stimulusSet}/${trial.stimulus_left}`;
+        trial.stimulus_right = `./assets/images/pavlovian-stims/${settings.sessionInfo.stimulusSet}/${trial.stimulus_right}`;
         trial.block = "pavlovian";
         trial.feedback_left = trial.magnitude_left;
         trial.feedback_right = trial.magnitude_right;

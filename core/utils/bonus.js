@@ -3,7 +3,7 @@
  * Handles bonus computation and payment tracking across different experimental modules
  */
 
-import { postToParent, endExperiment, saveDataREDCap } from "./data-handling.js";
+import { postToParent, endExperiment, updateState, saveDataREDCap } from "./data-handling.js";
 
 /**
  * Rounds a numeric value to a specified number of decimal places
@@ -58,9 +58,12 @@ function computeTotalBonus(module) {
                 
                 // Handle the result (could be 0, object, or array)
                 if (bonusResult && typeof bonusResult === 'object') {
-                    totalEarned += bonusResult.earned || 0;
-                    totalMin += bonusResult.min || 0;
-                    totalMax += bonusResult.max || 0;
+                    const taskName = element.config?.task_name || task.defaultConfig?.task_name || element.name;
+                    const savedBonus = window.session_state?.[taskName] || {};
+
+                    totalEarned += (Number(savedBonus.earned) || 0) + (bonusResult.earned || 0);
+                    totalMin += (Number(savedBonus.min) || 0) + (bonusResult.min || 0);
+                    totalMax += (Number(savedBonus.max) || 0) + (bonusResult.max || 0);
                 }
             }
         }
@@ -112,11 +115,8 @@ function updateBonusState(settings) {
 
     // Update the task-specific values in the session state
     updated_session_state_obj[settings.task_name].earned = roundDigits(newBonus.earned);
-    if (settings.task_name !== "reversal") {
-        // For all tasks except reversal, we update the min and max in bonus state
-        updated_session_state_obj[settings.task_name].min = roundDigits(newBonus.min);
-        updated_session_state_obj[settings.task_name].max = roundDigits(newBonus.max);
-    }
+    updated_session_state_obj[settings.task_name].min = roundDigits(newBonus.min);
+    updated_session_state_obj[settings.task_name].max = roundDigits(newBonus.max);
 
     // Send the updated state back to the parent window
     console.log("To-be-updated bonus:", updated_session_state_obj);
@@ -131,11 +131,11 @@ function updateBonusState(settings) {
  */
 function bonusTrial(module) {
     return {
-        type: jsPsychHtmlKeyboardResponse,
+        type: jsPsychHtmlButtonResponse,
         css_classes: ['instructions'],
         stimulus: function (trial) {
             // Determine context-appropriate terminology
-            let stimulus =  `Thank you for completing this session!`      
+            let stimulus =  `Congratulations! You are nearly at the end of this module!`      
             const total_bonus = computeTotalBonus(module);
             stimulus += `
                     <p>It is time to reveal your total bonus payment for this module.</p>
@@ -143,18 +143,26 @@ function bonusTrial(module) {
                 `;
             return stimulus;
     },
-    choices: ['p'],
+    choices: ['Continue'],
     data: { trialphase: 'bonus_trial' },
     on_start: () => {
-      const bonus = computeTotalBonus(module).toFixed(2);
-      
-      jsPsych.data.addProperties({
-          bonus: bonus
-      });
-
-      saveDataREDCap();
+        updateState(`bonus_trial`);
+        
+        const bonus = computeTotalBonus(module).toFixed(2);
+        
+        jsPsych.data.addProperties({
+            bonus: bonus
+        });
+        
+        postToParent({bonus: bonus});
+        
+        saveDataREDCap();
     },
-    on_finish: endExperiment,
+    on_finish: (data) => {
+        updateState('bonus_trial_end');
+
+        endExperiment();
+    },
     simulation_options: {
       simulate: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' // Simulate the bonus trial in development mode
     }

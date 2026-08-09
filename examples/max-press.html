@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="../">
     <title>Max Press Rate Task</title>
     
     <!-- jsPsych Core Files -->
-    <script src="/core/jspsych/jspsych.js"></script>
-    <script src="/core/jspsych/plugin-html-keyboard-response.js"></script>
-    <script src="/core/jspsych/plugin-html-button-response.js"></script>
-    <script src="/core/jspsych/plugin-fullscreen.js"></script>
-    <script src="/core/jspsych/plugin-instructions.js"></script>
+    <script src="./core/jspsych/jspsych.js"></script>
+    <script src="./core/jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="./core/jspsych/plugin-html-button-response.js"></script>
+    <script src="./core/jspsych/plugin-fullscreen.js"></script>
+    <script src="./core/jspsych/plugin-instructions.js"></script>
 
         
     <!-- Core utilities -->
-    <script type="module" src="/core/utils/index.js"></script>
+    <script type="module" src="./core/utils/index.js"></script>
     
     <!-- CSS Styles -->
-    <link href="/core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="./core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
 
     <style>
         body {
@@ -46,8 +47,8 @@
     
     <script type="module">
         // Import task registry functions
-        import { createTaskTimeline, getTaskInfo } from '/api/index.js';
-        import { enterExperiment } from '/core/utils/index.js';
+        import { createTaskTimeline, getTaskInfo } from './api/index.js';
+        import { enterExperiment } from './core/utils/index.js';
 
         // Get parameters from URL
         window.participantID = new URLSearchParams(window.location.search).get('participant_id') || '';

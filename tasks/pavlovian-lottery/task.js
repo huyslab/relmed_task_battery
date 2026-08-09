@@ -117,7 +117,7 @@ export function createPavlovianLotteryTimeline(settings) {
   const prepilt_preload = createPreloadTrial(
     [
       // Pavlovian stimulus images for the current session
-      [1, 2, 3, 4, 5, 6].map(i => `./assets/images/pavlovian-stims/${settings.session}/PIT${i}.png`),
+      [1, 2, 3, 4, 5, 6].map(i => `./assets/images/pavlovian-stims/${settings.sessionInfo.stimulusSet}/PIT${i}.png`),
       // Coin reward/punishment images
       [
         "50pence.png",
@@ -213,7 +213,7 @@ export function createPavlovianLotteryTimeline(settings) {
     },
     on_load: function () {
       // Get the target stimulus for this trial
-      const currentStimulus = "./assets/images/pavlovian-stims/" + settings.session + "/" + PREPILT_CONFIG.stimulus[jsPsych.evaluateTimelineVariable('pav_value')];
+      const currentStimulus = "./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/" + PREPILT_CONFIG.stimulus[jsPsych.evaluateTimelineVariable('pav_value')];
       const slotReel = document.getElementById('slot-reel');
       const slotContainer = document.querySelector('.slot-machine-container');
       const selectionFrame = document.querySelector('.selection-frame');
@@ -221,7 +221,7 @@ export function createPavlovianLotteryTimeline(settings) {
       // Create pavlovianStimuli array from PREPILT_CONFIG for carousel population
       const pavlovianStimuli = Object.values(PREPILT_CONFIG.stimulus).map((filename) => {
         return {
-          stimulus: "./assets/images/pavlovian-stims/" + settings.session + "/" + filename
+          stimulus: "./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/" + filename
         };
       });
 
@@ -372,7 +372,7 @@ export function createPavlovianLotteryTimeline(settings) {
     type: jsPsychHtmlKeyboardResponse,
     stimulus: function () {
       // Get the stimulus and reward images for this trial
-      const stimulusImg = "./assets/images/pavlovian-stims/" + settings.session + "/" + PREPILT_CONFIG.stimulus[jsPsych.evaluateTimelineVariable('pav_value')];
+      const stimulusImg = "./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/" + PREPILT_CONFIG.stimulus[jsPsych.evaluateTimelineVariable('pav_value')];
       const rewardImg = "./assets/images/card-choosing/outcomes/" + PREPILT_CONFIG.reward[jsPsych.evaluateTimelineVariable('pav_value')];
       const value = PREPILT_CONFIG.value[jsPsych.evaluateTimelineVariable('pav_value')];
 

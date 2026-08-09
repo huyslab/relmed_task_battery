@@ -1,0 +1,442 @@
+/* Medication questionnaire - one question per screen, sized for fingers rather than mice.
+   Everything is scoped under .medq-* so it can sit alongside the other task stylesheets. */
+
+.medq-screen {
+    --medq-navy: #182b4b;
+    --medq-blue: #4a6fa5;
+    --medq-blue-dark: #3a5a8a;
+    --medq-line: #d3dbe8;
+    --medq-muted: #5b6b83;
+    --medq-transition: 350ms;
+    --medq-focus-ring: 3px;
+    --medq-focus-offset: 2px;
+    --medq-gutter: 6px;
+
+    box-sizing: border-box;
+    width: min(648px, 94vw);
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Side padding is the room the focus rings sit in. Scrolling on one axis makes the
+       other axis scroll too, which clips anything drawn outside the box - without this,
+       the ring on a full-width field is cut off at both edges. Keep it at or above the
+       ring's reach (--medq-focus-ring + --medq-focus-offset). */
+    padding: 16px var(--medq-gutter) 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--medq-navy);
+    text-align: left;
+
+    /* Starting state of the slide-in; .medq-screen-in settles it into place */
+    opacity: 0;
+    transform: translateX(8vw);
+    transition: opacity var(--medq-transition) ease, transform var(--medq-transition) ease;
+}
+
+.medq-screen-in {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Answers are committed as the screen leaves, so it always exits to the left */
+.medq-screen-out {
+    opacity: 0;
+    transform: translateX(-8vw);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .medq-screen {
+        transition-duration: 1ms;
+        transform: none;
+    }
+    .medq-screen-out {
+        transform: none;
+    }
+}
+
+.medq-screen * {
+    box-sizing: border-box;
+}
+
+/* Progress dots - shows how far along the questionnaire is, with no way back */
+.medq-progress {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.medq-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--medq-line);
+}
+
+.medq-dot-done {
+    background-color: var(--medq-blue);
+}
+
+.medq-dot-current {
+    background-color: var(--medq-navy);
+    transform: scale(1.4);
+}
+
+.medq-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.medq-prompt {
+    font-size: clamp(22px, 5.2vw, 30px);
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.medq-hint {
+    font-size: clamp(16px, 3.8vw, 19px);
+    line-height: 1.45;
+    color: var(--medq-muted);
+    margin: -8px 0 0;
+}
+
+.medq-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.medq-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+/* --- Buttons --- */
+
+.medq-btn {
+    width: 100%;
+    min-height: 64px;
+    padding: 16px 20px;
+    border-radius: 14px;
+    border: 2px solid var(--medq-line);
+    background-color: #fff;
+    color: var(--medq-navy);
+    font-family: inherit;
+    font-size: clamp(18px, 4.4vw, 21px);
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+
+.medq-btn:active {
+    transform: scale(0.98);
+}
+
+.medq-btn-primary {
+    background-color: var(--medq-blue);
+    border-color: var(--medq-blue);
+    color: #fff;
+}
+
+.medq-btn-primary:active {
+    background-color: var(--medq-blue-dark);
+}
+
+.medq-btn-primary:disabled {
+    background-color: #c7d1e0;
+    border-color: #c7d1e0;
+    color: #f2f5fa;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.medq-btn-quiet {
+    min-height: 52px;
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--medq-muted);
+    font-weight: 500;
+    font-size: clamp(16px, 3.8vw, 18px);
+    text-decoration: underline;
+}
+
+.medq-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.medq-choice:active {
+    background-color: #eef2f8;
+    border-color: var(--medq-blue);
+}
+
+/* --- Text entry --- */
+
+.medq-input {
+    width: 100%;
+    min-height: 64px;
+    padding: 14px 16px;
+    border: 2px solid var(--medq-line);
+    border-radius: 14px;
+    background-color: #fff;
+    color: var(--medq-navy);
+    font-family: inherit;
+    /* 16px or larger stops iOS Safari zooming in when the field is focused */
+    font-size: clamp(18px, 4.4vw, 21px);
+}
+
+.medq-input:focus {
+    outline: none;
+    border-color: var(--medq-blue);
+}
+
+.medq-input::placeholder {
+    color: #9aa8bd;
+}
+
+/* Typed number entry, shown instead of the keypad on machines with a keyboard */
+.medq-number-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.medq-number-field .medq-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.medq-number-unit {
+    flex: 0 0 auto;
+    font-size: clamp(18px, 4.4vw, 21px);
+    font-weight: 500;
+    color: var(--medq-muted);
+}
+
+/* --- Keypad --- */
+
+.medq-keypad-readout {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+    min-height: 76px;
+    padding: 10px 16px;
+    border: 2px solid var(--medq-line);
+    border-radius: 14px;
+    background-color: #f7f9fc;
+    font-size: clamp(30px, 8vw, 40px);
+    font-weight: 600;
+}
+
+.medq-keypad-empty {
+    color: #9aa8bd;
+}
+
+.medq-keypad-unit {
+    font-size: clamp(18px, 4.4vw, 22px);
+    font-weight: 500;
+    color: var(--medq-muted);
+}
+
+.medq-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.medq-key {
+    min-height: 64px;
+    border: 2px solid var(--medq-line);
+    border-radius: 14px;
+    background-color: #fff;
+    color: var(--medq-navy);
+    font-family: inherit;
+    font-size: clamp(22px, 5.5vw, 26px);
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.medq-key:active {
+    background-color: #eef2f8;
+    border-color: var(--medq-blue);
+}
+
+.medq-key-blank {
+    border-color: transparent;
+    background-color: transparent;
+}
+
+.medq-key-del {
+    color: var(--medq-muted);
+}
+
+/* --- Date --- */
+
+.medq-date {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.medq-date-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.medq-date-label {
+    font-size: clamp(15px, 3.6vw, 17px);
+    font-weight: 600;
+    color: var(--medq-muted);
+}
+
+/* Native selects open the operating system's own picker, which is the easiest
+   date control to use on a touchscreen */
+.medq-select {
+    width: 100%;
+    min-height: 64px;
+    padding: 14px 44px 14px 16px;
+    border: 2px solid var(--medq-line);
+    border-radius: 14px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%235b6b83' d='M4 6l4 4 4-4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 20px;
+    color: var(--medq-navy);
+    font-family: inherit;
+    font-size: clamp(18px, 4.4vw, 21px);
+    font-weight: 500;
+    appearance: none;
+    -webkit-appearance: none;
+    touch-action: manipulation;
+}
+
+.medq-select:focus {
+    outline: none;
+    border-color: var(--medq-blue);
+}
+
+/* --- Chip list --- */
+
+.medq-add-row {
+    display: flex;
+    gap: 10px;
+}
+
+.medq-add-row .medq-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.medq-btn-add {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 96px;
+    border-color: var(--medq-blue);
+    color: var(--medq-blue);
+}
+
+.medq-btn-add:disabled {
+    border-color: var(--medq-line);
+    color: #9aa8bd;
+    cursor: not-allowed;
+}
+
+.medq-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.medq-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 12px 12px 16px;
+    border-radius: 14px;
+    background-color: #eef2f8;
+    font-size: clamp(17px, 4.2vw, 20px);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.medq-chip-remove {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fff;
+    color: var(--medq-muted);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.medq-chips-empty {
+    color: #9aa8bd;
+    font-size: clamp(16px, 3.8vw, 18px);
+}
+
+/* --- Keyboard and mouse --- */
+
+/* Every control has to show where the keyboard is */
+.medq-btn:focus-visible,
+.medq-key:focus-visible,
+.medq-chip-remove:focus-visible,
+.medq-input:focus-visible,
+.medq-select:focus-visible {
+    outline: var(--medq-focus-ring) solid var(--medq-blue);
+    outline-offset: var(--medq-focus-offset);
+}
+
+/* Sized for a cursor rather than a fingertip. Still generous - the questionnaire opens a
+   session and is often the participant's first screen. */
+.medq-keyboard .medq-btn,
+.medq-keyboard .medq-input,
+.medq-keyboard .medq-select {
+    min-height: 54px;
+}
+
+.medq-keyboard .medq-btn-quiet {
+    min-height: 44px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .medq-btn:hover:not(:disabled),
+    .medq-key:hover {
+        background-color: #eef2f8;
+        border-color: var(--medq-blue);
+    }
+
+    .medq-btn-primary:hover:not(:disabled) {
+        background-color: var(--medq-blue-dark);
+        border-color: var(--medq-blue-dark);
+    }
+
+    .medq-btn-quiet:hover {
+        background-color: transparent;
+        border-color: transparent;
+        color: var(--medq-navy);
+    }
+
+    .medq-chip-remove:hover {
+        color: var(--medq-navy);
+    }
+}

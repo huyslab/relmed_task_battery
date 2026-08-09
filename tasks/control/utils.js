@@ -43,7 +43,7 @@ export const controlPreload = (settings) => {
       "island_icon_i2.png",
       "island_icon_i3.png",
       "island_icon_i4.png"
-    ].map(s => "./assets/images/control/session-specific/" + settings.session + "/" + s)),
+    ].map(s => "./assets/images/control/session-specific/" + settings.sessionInfo.stimulusSet + "/" + s)),
   ];
 
   return createPreloadTrial(
@@ -114,13 +114,13 @@ export function createCoreControlTimeline(settings) {
     // Only show confidence rating if participant made a choice and not in screening
     conditional_function: function () {
       const last_trial_choice = jsPsych.data.get().last(1).select('response').values[0];
-      return last_trial_choice !== null && settings.session !== "screening";
+      return last_trial_choice !== null && settings.sessionInfo.variant !== 'screening';
     }
   };
 
   // Build exploration phase trials
   const controlExploreTimeline = [];
-  (settings.session === "screening" 
+  (settings.sessionInfo.variant === 'screening' 
     ? EXPLORE_SEQUENCE_SCREENING 
     : EXPLORE_SEQUENCE).forEach(t => {
     controlExploreTimeline.push({
@@ -143,7 +143,7 @@ export function createCoreControlTimeline(settings) {
             }
           },
           explore_effort: 3000,
-          island_path: `./assets/images/control/session-specific/${settings.session}`,
+          island_path: `./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}`,
           base_rule: controlConfig(settings).baseRule,
           post_trial_gap: 0,
           save_timeline_variables: true,
@@ -184,7 +184,7 @@ export function createCoreControlTimeline(settings) {
             base_rule: controlConfig(settings).baseRule,
             control_rule: controlConfig(settings).controlRule,
             effort_threshold: controlConfig(settings).effort_threshold,
-            island_path: `./assets/images/control/session-specific/${settings.session}`,
+            island_path: `./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}`,
             scale: controlConfig(settings).scale,
             post_trial_gap: 0
           }],
@@ -214,7 +214,7 @@ export function createCoreControlTimeline(settings) {
 
   // Build prediction phase trials
   const controlPredTimeline = [];
-  (settings.session === "screening" 
+  (settings.sessionInfo.variant === 'screening' 
     ? PREDICT_SEQUENCE_SCREENING 
     : PREDICT_SEQUENCE).forEach(t => {
     controlPredTimeline.push({
@@ -234,11 +234,11 @@ export function createCoreControlTimeline(settings) {
             }
           },
           // Different island choices for screening vs main sessions
-          choices: settings.session === "screening" ? ["i1", "i2", "i3"] : ["i2", "i3", "i4", "i1"],
+          choices: settings.sessionInfo.variant === 'screening' ? ["i1", "i2", "i3"] : ["i2", "i3", "i4", "i1"],
           post_trial_gap: 0,
           save_timeline_variables: true,
           control_rule: controlConfig(settings).controlRule,
-          island_path: `./assets/images/control/session-specific/${settings.session}`,
+          island_path: `./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}`,
           on_start: function (trial) {
             // Add extra time if coming from feedback
             const last_trialphase = jsPsych.data.getLastTrialData().values()[0].trialphase;
@@ -293,7 +293,7 @@ export function createCoreControlTimeline(settings) {
         current: jsPsych.timelineVariable('current'),
         reward_amount: jsPsych.timelineVariable('reward_amount'),
         base_rule: controlConfig(settings).baseRule,
-        island_path: `./assets/images/control/session-specific/${settings.session}`,
+        island_path: `./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}`,
         simulation_options: {
           data: {rt: 1100}
         }
@@ -313,7 +313,7 @@ export function createCoreControlTimeline(settings) {
       control_rule: controlConfig(settings).controlRule,
       effort_threshold: controlConfig(settings).effort_threshold,
       scale: controlConfig(settings).scale,
-      island_path: `./assets/images/control/session-specific/${settings.session}`,
+      island_path: `./assets/images/control/session-specific/${settings.sessionInfo.stimulusSet}`,
       reward_decision: () => {
         if (canBeWarned(settings, 1)) {
             return settings.default_response_deadline
@@ -417,7 +417,7 @@ export function createCoreControlTimeline(settings) {
                 <div style="font-size: 32px;">→</div>
               </td>
               <td style="text-align: left; vertical-align: middle;">
-                <img src="./assets/images/control/Control_stims/${settings.session}/island_icon_${homebase}.png" alt="Island ${homebase}" style="height: 100px;">
+                <img src="./assets/images/control/Control_stims/${settings.sessionInfo.stimulusSet}/island_icon_${homebase}.png" alt="Island ${homebase}" style="height: 100px;">
               </td>
             </tr>`;
         }
@@ -444,7 +444,7 @@ export function createCoreControlTimeline(settings) {
   // Assemble the complete timeline based on session type
   let controlTimeline = [];
 
-  if (settings.session === "screening") {
+  if (settings.sessionInfo.variant === 'screening') {
     // Screening: simpler structure with fewer prediction trials
     let trial = 1;
     for (let i = 0; i < EXPLORE_SEQUENCE_SCREENING.length; i++) {

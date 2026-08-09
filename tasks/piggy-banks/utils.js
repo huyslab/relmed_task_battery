@@ -23,10 +23,10 @@ function animatePiggy(keyframes, options) {
  */
 function shakePiggy() {
   animatePiggy([
-    'translateX(-1%)',
-    'translateX(1%)',
+    'translateX(-2%)',
+    'translateX(2%)',
     'translateX(0)'
-  ], { duration: 80, easing: 'linear' });
+  ], { duration: 100, easing: 'linear' });
 }
 
 /**
@@ -45,11 +45,12 @@ function updatePiggyTails(magnitude, ratio, settings) {
   // Calculate saturation based on ratio - higher ratios get more saturated colors
   const ratio_factor = ratio_index / (settings.ratios.length - 1);
 
-  // Remove existing tails
-  document.querySelectorAll('.piggy-tail').forEach(tail => tail.remove());
-
-  // Wait for the piggy bank image to load before positioning tails
+  // Render tails fresh on every (re)layout. Clearing INSIDE the handler keeps this
+  // idempotent even when the image fires `load` after the manual `complete` call below:
+  // a freshly inserted cached image triggers both, which would otherwise double the tails
+  // (and tail count encodes reward magnitude, so duplicates are a wrong experimental cue).
   piggyBank.onload = () => {
+    document.querySelectorAll('.piggy-tail').forEach(tail => tail.remove());
     const piggyBankWidth = piggyBank.offsetWidth;
     const tailWidth = piggyBankWidth * 0.1; // Tail width relative to piggy size
     const spacing = tailWidth * 0; // No spacing between tails currently

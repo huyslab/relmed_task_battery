@@ -38,6 +38,8 @@
     <script src="tasks/control/plugins/plugin-reward-prompt.js"></script>
     <script src="tasks/reversal/plugin-reversal.js"></script>
     <script src="tasks/open-text/plugin-open-text.js"></script>
+    <script src="tasks/medication-questionnaire/plugin-medication-question.js"></script>
+    <script src="tasks/self-report/plugin-self-report-item.js"></script>
 
     
     <!-- Core utilities -->
@@ -47,6 +49,13 @@
     <link href="core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
 
     <style>
+        html, body {
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -56,79 +65,290 @@
         #display_element {
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-        
+
         .instructions p {
-            width: 700px;
+            max-width: min(700px, 92vw);
             text-align: left;
             margin: 1em 0;
+        }
+
+        .instructions td {
+            padding-left: 20px;
+            padding-right: 20px
+        }
+
+        /* Lists sit in the same column as the paragraphs around them, rather than stretching
+           across the centred instructions container */
+        .instructions ul {
+            max-width: min(700px, 92vw);
+            text-align: left;
+            margin: 1em 0;
+            padding-left: 1.4em;
+        }
+
+        .instructions li {
+            margin: 0.4em 0;
+        }
+
+        /* A full URL is longer than a phone is wide */
+        .instructions a {
+            word-break: break-word;
+        }
+
+        /* Orientation gate: on phones, block the wrong orientation for the active task; tablets/
+           desktop are exempt (larger min dimension). Driven by
+           <body data-preferred-orientation="portrait|landscape">, set per task by the registry. */
+        #rotate-overlay {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100000;
+            background: #ffffff;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        #rotate-overlay p {
+            font-size: clamp(18px, 5vw, 24px);
+            color: #182b4b;
+            line-height: 1.4;
+            max-width: 90vw;
+            margin: 0;
+            display: none;
+        }
+        .phone-rotate-icon {
+            width: 80px;
+            height: 80px;
+            display: none;
+        }
+        .phone-rotate-icon svg {
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+        }
+        /* default (no angle override): phone top pointing right → icon animates CCW back to portrait */
+        @keyframes rotate-portrait-from-right {
+            0%, 15%  { transform: rotate(90deg); }
+            55%, 85% { transform: rotate(0deg); }
+            100%     { transform: rotate(90deg); }
+        }
+        /* [data-orientation-angle="90"]: phone top pointing left → icon animates CW back to portrait */
+        @keyframes rotate-portrait-from-left {
+            0%, 15%  { transform: rotate(-90deg); }
+            55%, 85% { transform: rotate(0deg); }
+            100%     { transform: rotate(-90deg); }
+        }
+        @keyframes rotate-to-landscape {
+            0%, 15%  { transform: rotate(0deg); }
+            55%, 85% { transform: rotate(90deg); }
+            100%     { transform: rotate(0deg); }
+        }
+        /* Portrait-preferred task on a phone held in landscape */
+        @media (orientation: landscape) and (max-height: 500px) {
+            body[data-preferred-orientation="portrait"] #rotate-overlay { display: flex; }
+            body[data-preferred-orientation="portrait"] #rotate-overlay .rotate-msg-portrait { display: block; }
+            body[data-preferred-orientation="portrait"] .phone-rotate-icon { display: block; }
+            /* Default: device tilted CW / top pointing right (angle=270) → guide CCW back */
+            body[data-preferred-orientation="portrait"] .phone-rotate-icon svg { animation: rotate-portrait-from-right 2.5s ease-in-out infinite; }
+            /* Override: device tilted CCW / top pointing left (angle=90) → guide CW back */
+            body[data-preferred-orientation="portrait"][data-orientation-angle="90"] .phone-rotate-icon svg { animation: rotate-portrait-from-left 2.5s ease-in-out infinite; }
+        }
+        /* Landscape-preferred task on a phone held in portrait */
+        @media (orientation: portrait) and (max-width: 500px) {
+            body[data-preferred-orientation="landscape"] #rotate-overlay { display: flex; }
+            body[data-preferred-orientation="landscape"] #rotate-overlay .rotate-msg-landscape { display: block; }
+            body[data-preferred-orientation="landscape"] .phone-rotate-icon { display: block; }
+            body[data-preferred-orientation="landscape"] .phone-rotate-icon svg { animation: rotate-to-landscape 2.5s ease-in-out infinite; }
         }
     </style>
 </head>
 <body>
-    <div id="display_element"></div>
+    <div id='display_element' class='jsPsychDE'></div>
+
+    <div id="rotate-overlay">
+        <div class="phone-rotate-icon">
+            <svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="56" height="96" rx="10" fill="#182b4b"/>
+                <rect x="6" y="14" width="48" height="72" rx="5" fill="#e2e8f2"/>
+                <circle cx="30" cy="7" r="3" fill="#4a6fa5"/>
+                <rect x="20" y="90" width="20" height="4" rx="2" fill="#4a6fa5"/>
+            </svg>
+        </div>
+        <p class="rotate-msg-portrait">The task is still running. Please rotate your device back to <strong>portrait</strong> mode and return to the task as quickly as possible.</p>
+        <p class="rotate-msg-landscape">Please rotate your device to <strong>landscape</strong> mode to continue.</p>
+    </div>
     
+    <script>
+        (function () {
+            function setOrientationAngle() {
+                var angle = (screen.orientation?.angle != null ? screen.orientation.angle : (window.orientation || 0));
+                // Normalise to 0–359 (window.orientation can return -90)
+                document.body.setAttribute('data-orientation-angle', String(((angle % 360) + 360) % 360));
+            }
+            setOrientationAngle();
+            window.addEventListener('orientationchange', setOrientationAngle);
+            window.addEventListener('resize', setOrientationAngle);
+        })();
+    </script>
+
     <script type="module">
         // Import task registry functions
-        import { createModuleTimeline, getModuleInfo } from '@api/index.js';
-        import { enterExperiment } from '@utils/index.js';
+        import { createModuleTimeline, createTaskTimeline, describeAcceptedSessions,
+                 getModuleInfo, getTask, getTaskInfo, resolveSession } from '@api/index.js';
+        import { bonusTrial, enterExperiment, getResumptionState, saveDataREDCap,
+                 signalLoadSuccess } from '@utils/index.js';
 
-        // Get parameters from URL
-        window.participantID = new URLSearchParams(window.location.search).get('participant_id') || '';
-        window.simulating = window.participantID.includes("simulate") || false;
-        console.log(window.simulating);
-
-        // Initialize jsPsych
+        // Initialize jsPsych. The pause/resume hook is installed by enterExperiment, which
+        // owns both the message listener and the buffer it drains.
         window.jsPsych = initJsPsych({
             display_element: 'display_element',
+            // Last-ditch save if the participant closes or reloads mid-task - without this
+            // everything since the last periodic save is lost.
+            on_close: () => { saveDataREDCap(); },
             on_finish: function(data) {
                 // Display results
-                jsPsych.getDisplayElement().innerHTML = session == "screening" ? '<p>Thank you for participating! You may now close this tab.</p>' : '<p>Thank you for participating! Please call the experimenter.</p>';
+                jsPsych.getDisplayElement().innerHTML = '<p>Thank you for participating! You may now close this tab.</p>';
             }
         });
 
-        // Configurations
-        window.session = new URLSearchParams(window.location.search).get('session') || 'wk0';
-        window.module = new URLSearchParams(window.location.search).get('module') ;
+        // Read the query string once - every launch parameter comes from the same place, and
+        // a single accessor is what keeps a rename on the website side from being missed
+        // (as `module_state` was).
+        const urlParams = new URLSearchParams(window.location.search);
 
-        const settings = {
-            sequence: window.session,
-            session: window.session
+        // Get parameters from URL (populated by index.html's setup form redirect)
+        window.context = urlParams.get('context') || 'relmed';
+        window.participantID = urlParams.get('participant_id') || '';
+        window.simulating = urlParams.get('simulate') === '1' || window.participantID.includes("simulate");
+        window.debug = window.participantID.includes("debug") || window.participantID.includes("TST");
+        // Resolves the website's `module_state`, falling back to the older `state` name
+        window.last_state = getResumptionState();
+        window.session_state = JSON.parse(urlParams.get('session_state') || "{}");
+
+        // Stamped into every trial for provenance; kept in this exact shape because
+        // .releaserc.json rewrites the literal on release.
+        jsPsych.data.addProperties({
+            version: "1.8.1"
+        });
+
+        // The session label as the website sent it ("Session 1", "Week 0", "Training"). Kept
+        // in its original form because this is the value REDCap already stores; the canonical
+        // key the run actually uses is resolved from it below.
+        window.session = urlParams.get('session') || '';
+
+        // The one place a label becomes a session. Everything downstream - trial sequences,
+        // stimulus sets, rule variants, resumption policy - is driven by this key, for both
+        // module and single-task runs. Null when the label isn't recognised; runExperiment
+        // refuses to start in that case.
+        window.sessionKey = resolveSession(window.session);
+
+        // The label goes to REDCap as `session`; the key it resolved to is stamped onto every
+        // trial alongside it, so the data says which stimuli and sequences were actually used.
+        // Must come after the resolution above, or every trial records a null key.
+        jsPsych.data.addProperties({
+            session_key: window.sessionKey
+        });
+
+        // Two ways in: `module` runs a collection of tasks from the module registry, `task`
+        // runs a single task from the task registry. A module is the more specific
+        // instruction, so when both arrive the task parameter is ignored.
+        const moduleName = urlParams.get('module') || '';
+        const taskName = urlParams.get('task') || '';
+        const runningModule = Boolean(moduleName);
+        if (runningModule && taskName) {
+            console.warn(`Both "module" and "task" given; running the module ("${moduleName}") and ignoring the task ("${taskName}").`);
+        }
+
+        // Recorded against every submission, so the data says which run this was
+        window.module = moduleName || taskName;
+
+        const bonusRules = {
+            reversal: {
+                max_bonus: 1.00,
+                min_prop_bonus: 0.00
+            },
+            vigour: {
+                max_bonus: 1.00,
+                min_prop_bonus: 0.00
+            }
         };
 
         // Function to run the experiment
         async function runExperiment() {
             try {
-                // Which module to run
-                const module_name = session == "screening" ? 'screening' : 'full_battery';
+                // Fail fast if this page was reached without what index.html's setup form
+                // provides - otherwise createTaskTimeline throws deep in the call stack for a
+                // missing task, and an unrecognized context fails silently later (saveDataREDCap
+                // only saves data for "relmed"/"prolific" contexts).
+                if (!runningModule && !taskName) {
+                    throw new Error('Missing "module" or "task" URL parameter. Launch this page via index.html rather than directly.');
+                }
+                if (window.context !== 'relmed' && window.context !== 'prolific') {
+                    throw new Error(`Missing or unrecognized "context" URL parameter ("${window.context}"). Expected "relmed" (also used for mymeds) or "prolific".`);
+                }
+                // REDCap rejects a submission with no session (post-data requires it), and
+                // every task's stimuli, rules and trial sequence are chosen by session, so a
+                // label that doesn't resolve is fatal for any run rather than reversal alone.
+                if (!window.session) {
+                    throw new Error('Missing "session" URL parameter. Launch this page via index.html rather than directly.');
+                }
+                if (!window.sessionKey) {
+                    throw new Error(`Unrecognized "session" URL parameter ("${window.session}"). Accepted: ${describeAcceptedSessions()}.`);
+                }
 
-                // Get module information
-                const moduleInfo = getModuleInfo(module_name);
-                console.log('Module info:', moduleInfo);
+                // The resolved session drives the whole run. Passed as runtime config, which
+                // is applied last, so it holds for every task in a module too.
+                const runConfig = { session: window.sessionKey };
 
-                // Create the timeline
-                const timeline = await createModuleTimeline(module_name, settings);
+                let timeline;
+                if (runningModule) {
+                    console.log('Module info:', getModuleInfo(moduleName));
+                    timeline = await createModuleTimeline(moduleName, runConfig);
+                } else {
+                    console.log('Task info:', getTaskInfo(taskName));
+                    timeline = await createTaskTimeline(taskName, runConfig);
+                }
                 console.log('Timeline created:', timeline);
-                
-                const exitFullscreen = {
-                    type: jsPsychFullscreen,
-                    fullscreen_mode: false
-                };
-                
-                // Create the complete timeline
-                const fullTimeline = [
-                    enterExperiment,
-                    ...timeline,
-                    exitFullscreen
-                ];
-                
+
+                // Report success only once all fallible task setup has completed. If timeline
+                // construction fails, the website's load timeout remains active and provides
+                // the participant with its normal recovery dialog.
+                signalLoadSuccess();
+
+                // A module decides for itself where its bonus is revealed, through a "bonus"
+                // element in its own definition. A single task has no such definition, so it
+                // is wrapped in a one-task module here to reveal its bonus at the end.
+                const fullTimeline = [enterExperiment, ...timeline];
+                if (!runningModule) {
+                    const singleTaskModule = {
+                        elements: [
+                            {
+                                type: "task",
+                                name: taskName,
+                                __task: getTask(taskName)
+                            }
+                        ],
+                        ...bonusRules[taskName]
+                    };
+                    fullTimeline.push(bonusTrial(singleTaskModule));
+                }
+
                 // Run the experiment
                 if (window.simulating) {
                     console.log('Simulating experiment run...');
-                    
+
                     // Simulation options
                     let simulation_options = {
                             default: {
@@ -145,13 +365,17 @@
                     console.log('Running experiment...');
                     await jsPsych.run(fullTimeline);
                 }
-                
+
             } catch (error) {
                 console.error('Error running experiment:', error);
-                jsPsych.getDisplayElement().innerHTML = `
+                // jsPsych.getDisplayElement() is only populated once jsPsych.run()/simulate()
+                // has started (inside prepareDom()) - errors thrown before that point (e.g. the
+                // guard above, or createTaskTimeline for an unknown task) need the raw container.
+                const errorContainer = jsPsych.getDisplayElement() || document.getElementById('display_element');
+                errorContainer.innerHTML = `
                     <div style="text-align: center; padding: 50px;">
                         <h2>Error Loading Experiment</h2>
-                        <p>There was an error loading the card choosing task:</p>
+                        <p>There was an error loading the ${runningModule ? `${moduleName} module` : `${taskName || 'requested'} task`}:</p>
                         <p><strong>${error.message}</strong></p>
                         <p>Please check the console for more details.</p>
                     </div>

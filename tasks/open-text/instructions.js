@@ -80,8 +80,11 @@ export function openTextInstructions(settings) {
         show_page_number: true,
         // Update application state when instructions complete
         on_finish: () => {
-            // Disable resume functionality for specific sessions
-            if (["wk24", "wk28"].includes(settings.session)){
+            // Disable resume functionality for specific sessions. open_text declares no
+            // session of its own, so sessionInfo is null whenever it runs outside a launch
+            // that supplies one (examples/open-text.html) - and a run with no session has no
+            // restricted policy to honour.
+            if (settings.sessionInfo?.resumePolicy === 'restricted'){
                 updateState("no_resume");
             }
             // Mark that open text task has started

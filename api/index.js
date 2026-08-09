@@ -5,3 +5,6 @@
 
 // Import and re-export all task registry functions
 export * from './utils.js';
+
+// Session definitions and label resolution
+export * from './session-registry.js';

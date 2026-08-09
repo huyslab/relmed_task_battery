@@ -1,0 +1,14 @@
+{
+  "name": "relmed-task-battery",
+  "version": "0.0.0",
+  "private": true,
+  "description": "RELMED task battery - jsPsych-based experiment tasks",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}

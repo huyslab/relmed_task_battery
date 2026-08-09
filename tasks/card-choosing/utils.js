@@ -37,7 +37,7 @@ const preloadAssets = (settings) => {
             if (settings.present_pavlovian) {
                 images = images.concat([
                     "PIT1.png", "PIT2.png", "PIT3.png", "PIT4.png", "PIT5.png", "PIT6.png"
-                ].map(s => `pavlovian-stims/${settings.session}/${s}`));
+                ].map(s => `pavlovian-stims/${settings.sessionInfo.stimulusSet}/${s}`));
             }
 
             // Add any extra media assets
@@ -63,7 +63,7 @@ function getPavlovianImages(settings) {
         "-1": "PIT6.png",
         "-0.5": "PIT5.png"
     };
-    PIT_imgs = Object.fromEntries(Object.entries(PIT_imgs).map(([k, v]) => [k, "./assets/images/pavlovian-stims/" + settings.session + "/" + v]));
+    PIT_imgs = Object.fromEntries(Object.entries(PIT_imgs).map(([k, v]) => [k, "./assets/images/pavlovian-stims/" + settings.sessionInfo.stimulusSet + "/" + v]));
     return PIT_imgs;
 }
 
@@ -455,7 +455,7 @@ function interBlockStimulus(settings){
     let txt = ``
 
     // Add text and tallies for early stop
-    if (window.skipThisBlock && (settings.session ? settings.session !== "screening" : true)){
+    if (window.skipThisBlock && (settings.session ? settings.sessionInfo.variant !== 'screening' : true)){
         
         txt += `<p>You've found the better ${n_groups > 1 ? "cards" : "card"}.</p><p>You will skip the remaining turns and `;
         
@@ -531,7 +531,7 @@ function buildCardChoosingTask(structure, insert_msg = true, settings = {task_na
         ];
 
         // Add pre-block instructions for numbered blocks
-        if (isValidNumber(block_number) & settings.task_name === "pilt" && (settings.session !== "screening")){
+        if (isValidNumber(block_number) && settings.task_name === "pilt" && (settings.sessionInfo.variant !== 'screening')){
             block.push(
                 createPressBothTrial(
                     `

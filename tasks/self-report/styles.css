@@ -1,0 +1,220 @@
+/* Self-report questionnaires - one item per screen, sized for fingers rather than mice.
+   Deliberately shares the look of the medication questionnaire (tasks/medication-questionnaire/
+   styles.css): both are question screens a participant meets in the same session, and they
+   should feel like one questionnaire. Everything is scoped under .srq-* so the two stylesheets
+   can be loaded side by side. */
+
+.srq-screen {
+    --srq-navy: #182b4b;
+    --srq-blue: #4a6fa5;
+    --srq-blue-dark: #3a5a8a;
+    --srq-line: #d3dbe8;
+    --srq-muted: #5b6b83;
+    --srq-transition: 350ms;
+    --srq-focus-ring: 3px;
+    --srq-focus-offset: 2px;
+    --srq-gutter: 6px;
+
+    box-sizing: border-box;
+    width: min(648px, 94vw);
+    max-height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Side padding is the room the focus rings sit in. Scrolling on one axis makes the
+       other axis scroll too, which clips anything drawn outside the box - without this,
+       the ring on a full-width option is cut off at both edges. Keep it at or above the
+       ring's reach (--srq-focus-ring + --srq-focus-offset). */
+    padding: 16px var(--srq-gutter) 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--srq-navy);
+    text-align: left;
+
+    /* Starting state of the slide-in; .srq-screen-in settles it into place */
+    opacity: 0;
+    transform: translateX(8vw);
+    transition: opacity var(--srq-transition) ease, transform var(--srq-transition) ease;
+}
+
+.srq-screen-in {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Answers are committed as the screen leaves, so it always exits to the left */
+.srq-screen-out {
+    opacity: 0;
+    transform: translateX(-8vw);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .srq-screen {
+        transition-duration: 1ms;
+        transform: none;
+    }
+    .srq-screen-out {
+        transform: none;
+    }
+}
+
+.srq-screen * {
+    box-sizing: border-box;
+}
+
+/* --- Progress --- */
+
+/* A bar rather than the medication questionnaire's dots: these questionnaires run to ten
+   items, and ten dots on a phone are too small to read as progress. */
+.srq-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.srq-progress-label {
+    font-size: clamp(14px, 3.4vw, 16px);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--srq-muted);
+}
+
+.srq-progress-track {
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--srq-line);
+    overflow: hidden;
+}
+
+.srq-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background-color: var(--srq-blue);
+    transition: width var(--srq-transition) ease;
+}
+
+/* --- Card --- */
+
+.srq-card {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* The timeframe the item is asked about, repeated on every screen because the item cannot be
+   answered without it */
+.srq-context {
+    font-size: clamp(16px, 3.8vw, 19px);
+    line-height: 1.45;
+    color: var(--srq-muted);
+    margin: 0;
+}
+
+.srq-prompt {
+    /* A shade smaller than the medication questionnaire's prompt: the longest PHQ-9 item runs
+       to four lines on a phone, and has to sit above four options without scrolling */
+    font-size: clamp(20px, 4.8vw, 27px);
+    font-weight: 600;
+    line-height: 1.3;
+    margin: -6px 0 0;
+}
+
+.srq-hint {
+    font-size: clamp(15px, 3.6vw, 18px);
+    line-height: 1.45;
+    color: var(--srq-muted);
+    margin: -8px 0 0;
+}
+
+.srq-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* --- Buttons --- */
+
+.srq-btn {
+    width: 100%;
+    min-height: 64px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    border: 2px solid var(--srq-line);
+    background-color: #fff;
+    color: var(--srq-navy);
+    font-family: inherit;
+    font-size: clamp(17px, 4.2vw, 20px);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+}
+
+.srq-btn:active {
+    transform: scale(0.98);
+}
+
+.srq-btn-primary {
+    background-color: var(--srq-blue);
+    border-color: var(--srq-blue);
+    color: #fff;
+    text-align: center;
+}
+
+.srq-btn-primary:active {
+    background-color: var(--srq-blue-dark);
+}
+
+.srq-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.srq-option:active {
+    background-color: #eef2f8;
+    border-color: var(--srq-blue);
+}
+
+/* Holds the tapped option visible while the screen slides away, so the answer that was
+   registered is seen rather than the screen just vanishing. Snapped on rather than eased:
+   the label turns white immediately, so a fading background would blank it out for the first
+   frames - which is exactly when the participant is looking at what they just tapped. */
+.srq-option-chosen,
+.srq-option-chosen:active {
+    background-color: var(--srq-blue);
+    border-color: var(--srq-blue);
+    color: #fff;
+    transition: none;
+}
+
+/* --- Keyboard and mouse --- */
+
+/* Every control has to show where the keyboard is */
+.srq-btn:focus-visible {
+    outline: var(--srq-focus-ring) solid var(--srq-blue);
+    outline-offset: var(--srq-focus-offset);
+}
+
+/* Sized for a cursor rather than a fingertip */
+.srq-keyboard .srq-btn {
+    min-height: 54px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .srq-btn:hover:not(:disabled) {
+        background-color: #eef2f8;
+        border-color: var(--srq-blue);
+    }
+
+    .srq-btn-primary:hover:not(:disabled) {
+        background-color: var(--srq-blue-dark);
+        border-color: var(--srq-blue-dark);
+    }
+
+    .srq-option-chosen:hover {
+        background-color: var(--srq-blue);
+        border-color: var(--srq-blue);
+    }
+}

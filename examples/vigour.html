@@ -3,24 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="../">
     <title>Vigour Task</title>
-    
+
+    <!-- Import map for module resolution -->
+    <script type="importmap">
+        {
+            "imports": {
+                "@utils/": "./core/utils/",
+                "@jspsych/": "./core/jspsych/",
+                "@tasks/": "./tasks/",
+                "@api/": "./api/",
+                "@images/": "./assets/images/"
+            }
+        }
+    </script>
+
     <!-- jsPsych Core Files -->
-    <script src="/core/jspsych/jspsych.js"></script>
-    <script src="/core/jspsych/plugin-html-keyboard-response.js"></script>
-    <script src="/core/jspsych/plugin-html-button-response.js"></script>
-    <script src="/core/jspsych/plugin-fullscreen.js"></script>
-    <script src="/core/jspsych/plugin-instructions.js"></script>
-    <script src="/core/jspsych/plugin-preload.js"></script>
+    <script src="./core/jspsych/jspsych.js"></script>
+    <script src="./core/jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="./core/jspsych/plugin-html-button-response.js"></script>
+    <script src="./core/jspsych/plugin-fullscreen.js"></script>
+    <script src="./core/jspsych/plugin-call-function.js"></script>
+    <script src="./core/jspsych/plugin-instructions.js"></script>
+    <script src="./core/jspsych/plugin-preload.js"></script>
 
         
     <!-- Core utilities -->
-    <script type="module" src="/core/utils/index.js"></script>
+    <script type="module" src="./core/utils/index.js"></script>
     
     <!-- CSS Styles -->
-    <link href="/core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+    <link href="./core/jspsych/jspsych.css" rel="stylesheet" type="text/css" />
 
     <style>
+        html, body {
+            overscroll-behavior: none; /* disable pull-to-refresh and overscroll bounce during the task */
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -30,25 +49,125 @@
         #display_element {
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-        
+
         .instructions p {
-            width: 700px;
+            max-width: min(700px, 92vw);
             text-align: left;
             margin: 1em 0;
+        }
+
+        /* Orientation gate: on phones, block the wrong orientation for the active task; tablets/
+           desktop are exempt (larger min dimension). Driven by
+           <body data-preferred-orientation="portrait|landscape">, set per task by the registry. */
+        #rotate-overlay {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100000;
+            background: #ffffff;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        #rotate-overlay p {
+            font-size: clamp(18px, 5vw, 24px);
+            color: #182b4b;
+            line-height: 1.4;
+            max-width: 90vw;
+            margin: 0;
+            display: none;
+        }
+        .phone-rotate-icon {
+            width: 80px;
+            height: 80px;
+            display: none;
+        }
+        .phone-rotate-icon svg {
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+        }
+        /* default (no angle override): phone top pointing right → icon animates CCW back to portrait */
+        @keyframes rotate-portrait-from-right {
+            0%, 15%  { transform: rotate(90deg); }
+            55%, 85% { transform: rotate(0deg); }
+            100%     { transform: rotate(90deg); }
+        }
+        /* [data-orientation-angle="90"]: phone top pointing left → icon animates CW back to portrait */
+        @keyframes rotate-portrait-from-left {
+            0%, 15%  { transform: rotate(-90deg); }
+            55%, 85% { transform: rotate(0deg); }
+            100%     { transform: rotate(-90deg); }
+        }
+        @keyframes rotate-to-landscape {
+            0%, 15%  { transform: rotate(0deg); }
+            55%, 85% { transform: rotate(90deg); }
+            100%     { transform: rotate(0deg); }
+        }
+        /* Portrait-preferred task on a phone held in landscape */
+        @media (orientation: landscape) and (max-height: 500px) {
+            body[data-preferred-orientation="portrait"] #rotate-overlay { display: flex; }
+            body[data-preferred-orientation="portrait"] #rotate-overlay .rotate-msg-portrait { display: block; }
+            body[data-preferred-orientation="portrait"] .phone-rotate-icon { display: block; }
+            /* Default: device tilted CW / top pointing right (angle=270) → guide CCW back */
+            body[data-preferred-orientation="portrait"] .phone-rotate-icon svg { animation: rotate-portrait-from-right 2.5s ease-in-out infinite; }
+            /* Override: device tilted CCW / top pointing left (angle=90) → guide CW back */
+            body[data-preferred-orientation="portrait"][data-orientation-angle="90"] .phone-rotate-icon svg { animation: rotate-portrait-from-left 2.5s ease-in-out infinite; }
+        }
+        /* Landscape-preferred task on a phone held in portrait */
+        @media (orientation: portrait) and (max-width: 500px) {
+            body[data-preferred-orientation="landscape"] #rotate-overlay { display: flex; }
+            body[data-preferred-orientation="landscape"] #rotate-overlay .rotate-msg-landscape { display: block; }
+            body[data-preferred-orientation="landscape"] .phone-rotate-icon { display: block; }
+            body[data-preferred-orientation="landscape"] .phone-rotate-icon svg { animation: rotate-to-landscape 2.5s ease-in-out infinite; }
         }
     </style>
 </head>
 <body>
     <div id="display_element"></div>
+
+    <div id="rotate-overlay">
+        <div class="phone-rotate-icon">
+            <svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="56" height="96" rx="10" fill="#182b4b"/>
+                <rect x="6" y="14" width="48" height="72" rx="5" fill="#e2e8f2"/>
+                <circle cx="30" cy="7" r="3" fill="#4a6fa5"/>
+                <rect x="20" y="90" width="20" height="4" rx="2" fill="#4a6fa5"/>
+            </svg>
+        </div>
+        <p class="rotate-msg-portrait">The task is still running. Please rotate your device back to <strong>portrait</strong> mode and return to the task as quickly as possible.</p>
+        <p class="rotate-msg-landscape">Please rotate your device to <strong>landscape</strong> mode to continue.</p>
+    </div>
     
+    <script>
+        (function () {
+            function setOrientationAngle() {
+                var angle = (screen.orientation?.angle != null ? screen.orientation.angle : (window.orientation || 0));
+                // Normalise to 0–359 (window.orientation can return -90)
+                document.body.setAttribute('data-orientation-angle', String(((angle % 360) + 360) % 360));
+            }
+            setOrientationAngle();
+            window.addEventListener('orientationchange', setOrientationAngle);
+            window.addEventListener('resize', setOrientationAngle);
+        })();
+    </script>
+
     <script type="module">
         // Import task registry functions
-        import { createTaskTimeline, getTaskInfo } from '/api/index.js';
-        import { enterExperiment } from '/core/utils/index.js';
+        import { createTaskTimeline, getTaskInfo } from './api/index.js';
+        import { enterExperiment } from './core/utils/index.js';
 
         // Get parameters from URL
         window.participantID = new URLSearchParams(window.location.search).get('participant_id') || '';

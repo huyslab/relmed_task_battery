@@ -91,7 +91,7 @@ const fullscreen_prompt = {
 
 function preKickOutWarning(settings) {
     return {
-        type: jsPsychHtmlKeyboardResponse,
+        type: jsPsychHtmlButtonResponse,
         conditional_function: function() {
         if ((jsPsych.data.get().last(1).select('n_warnings').values[0] >= settings.interimWarning) &&
         !jsPsych.data.get().last(1).select('pre_kick_out_warned').values[0]
@@ -111,8 +111,8 @@ function preKickOutWarning(settings) {
             {
                 stimulus: `<p>You seem to be taking too long to respond on the tasks.</p>
                     <p>Please try to respond more quickly. Also, please keep your attention on the task window, and don't use other tabs or windows.</p>
-                    <p>If you continue to receive too many warnings, we will have to stop your particpation in this experiment</p>
-                    <p>Place your fingers back on the keyboard, and press one of the keys your were using for this task to continue.</p>
+                    <p>If you continue to receive too many warnings, we will have to stop your participation in this experiment.</p>
+                    <p>Tap the button below to continue.</p>
                 `,
                 on_start: function(trial) {
                     // Save data
@@ -120,7 +120,7 @@ function preKickOutWarning(settings) {
             }
             }
         ],
-        choices: ["arrowright", "arrowleft", "arrowup", "b"],
+        choices: ['Continue'],
         data: {
         trialphase: 'pre-kick-out-warning'
         }
@@ -132,11 +132,11 @@ function preKickOutWarning(settings) {
  */
 function kickOutWarning(settings)  {
     return {
-        type: jsPsychHtmlKeyboardResponse,
+        type: jsPsychHtmlButtonResponse,
         conditional_function: function() {
             const n_warnings = jsPsych.data.get().last(1).select('n_warnings').values[0];
             const warned = jsPsych.data.get().last(1).select('kick_out_warned').values[0] || false;
-            if ((n_warnings == settings.finalWarning) && (!warned)) {
+            if ((n_warnings >= settings.finalWarning) && (!warned)) {
                 jsPsych.data.addProperties(
                     {
                         kick_out_warned: true
@@ -151,13 +151,13 @@ function kickOutWarning(settings)  {
         css_classes: ['instructions'],
         timeline: [
             {
-            stimulus: `<p>You might be making taking a little too long to make your choices.</p>
+            stimulus: `<p>You might be taking a little too long to make your choices.</p>
             <p>We're interested in your quick judgments, so please try to respond a little faster—even if it feels a bit less precise.</p>
-            <p>Press either the right or left arrow to continue.</p>
+            <p>Tap the button below to continue.</p>
             `
             }
         ],
-        choices: ["arrowright", "arrowleft"],
+        choices: ['Continue'],
         data: {
             trialphase: 'speed-accuracy'
         }
@@ -308,6 +308,8 @@ function showTemporaryWarning(message, duration = 800) {
         background-color: rgba(244, 206, 92, 0.9);
         padding: 15px 25px;
         border-radius: 8px;
+        width: min(92vw, 440px);
+        box-sizing: border-box;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         font-size: 24px;
         font-weight: 500;

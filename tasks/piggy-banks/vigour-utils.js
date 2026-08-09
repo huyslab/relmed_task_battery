@@ -15,7 +15,14 @@ let taskTotalPresses = 0;
 let trialState = {
   trialPresses: 0,
   trialReward: 0,
-  responseTime: []
+  responseTime: [],
+  pointerType: null,
+  pointerTypeCounts: {},
+  viewportWidth: null,
+  viewportHeight: null,
+  viewportChanged: false,
+  wrongOrientation: false,
+  wrongOrientationTimes: []
 };
 
 // Array of image paths to preload for the vigour task
@@ -88,6 +95,7 @@ function observeResizing(elementId, callback) {
   if (element) {
     resizeObserver.observe(element);
   }
+  return resizeObserver;
 }
 
 /**
@@ -161,9 +169,63 @@ function generateTrialStimulus(magnitude, ratio) {
   `;
 }
 
+/**
+ * Sets up a pointerdown (touch/tap) listener on the piggybank element.
+ * @param {Function} callback - Function to call when piggybank is tapped
+ * @returns {{element: HTMLElement, handler: Function}|null} Listener reference for cleanup, or null if element not found
+ */
+function setupPointerListener(callback) {
+  const piggyContainer = document.getElementById('piggy-container');
+  if (!piggyContainer) return null;
+  const handler = function (event) {
+    if (!event.isPrimary) return; // ignore secondary touches (multi-touch contamination)
+    if (event.button !== 0) return; // ignore right-click, middle-click, and stylus barrel buttons
+    event.preventDefault();
+    callback(event);
+  };
+  piggyContainer.addEventListener('pointerdown', handler);
+  return { element: piggyContainer, handler };
+}
+
+/**
+ * Removes a pointerdown listener set up by setupPointerListener.
+ * @param {Function|null} handler - The handler function to remove
+ * @param {HTMLElement|null} element - The DOM element the listener is attached to
+ */
+function cleanupPointerListener(handler, element) {
+  if (handler && element) {
+    element.removeEventListener('pointerdown', handler);
+  }
+}
+
+/**
+ * Simulates a tap on an element by dispatching a PointerEvent after a delay.
+ * Used only in simulation mode.
+ * @param {HTMLElement} element - The element to simulate a tap on
+ * @param {number} delay - Delay in milliseconds before dispatching
+ */
+function simulatePointerTap(element, delay) {
+  setTimeout(() => {
+    if (element) {
+      element.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true,
+        isPrimary: true,
+        pointerType: 'touch',
+        button: 0
+      }));
+    }
+  }, delay);
+}
+
 // Global trial tracking variables
 let vigourTrialCounter = 0;
 let fsChangeHandler = null;
+let vigourPointerHandler = null;
+let vigourPiggyContainer = null;
+let vigourResizeHandler = null;
+let vigourResizeTimer = null;
+let vigourResizeObserver = null;
+let vigourGateFrame = null;
 
 /**
  * Creates a single vigour trial with piggy bank shaking mechanics
@@ -185,6 +247,18 @@ function piggyBankTrial(settings) {
       trial_duration: jsPsych.timelineVariable('trialDuration'),
       // Trial-specific data functions
       responseTime: () => { return trialState.responseTime },
+      pointer_type: () => { return trialState.pointerType },
+      // Per-input-type press counts (e.g. {touch: 5, pen: 2}); pointer_mixed flags
+      // finger<->pencil switching within a trial (supports warnings / exclusion).
+      pointer_type_counts: () => { return trialState.pointerTypeCounts },
+      pointer_mixed: () => { return Object.keys(trialState.pointerTypeCounts).length > 1 },
+      // Per-trial viewport geometry: drives piggy size; subsumes orientation and
+      // captures dvh/toolbar changes. viewport_changed flags mid-trial rotation/resize.
+      viewport_width: () => { return trialState.viewportWidth },
+      viewport_height: () => { return trialState.viewportHeight },
+      viewport_changed: () => { return trialState.viewportChanged },
+      wrong_orientation: () => { return trialState.wrongOrientation },
+      wrong_orientation_times: () => { return trialState.wrongOrientationTimes },
       trial_presses: () => { return trialState.trialPresses },
       trial_reward: () => { return trialState.trialReward },
       // Global task data
@@ -201,76 +275,144 @@ function piggyBankTrial(settings) {
       trialState = {
         trialPresses: 0,
         trialReward: 0,
-        responseTime: []
+        responseTime: [],
+        pointerType: null,
+        pointerTypeCounts: {},
+        viewportWidth: null,
+        viewportHeight: null,
+        viewportChanged: false,
+        wrongOrientation: false,
+        wrongOrientationTimes: []
       };
-      
-      // Store trial state in trial data for access by data functions
-      trial.data.trialState = trialState;
-
-      let lastPressTime = 0;
-      let pressCount = 0;
-
-      const ratio = jsPsych.evaluateTimelineVariable('ratio');
-      const magnitude = jsPsych.evaluateTimelineVariable('magnitude');
-
-      // Set up keyboard listener for vigour responses
-      const keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
-        callback_function: function (info) {
-          trialState.responseTime.push(info.rt - lastPressTime);
-          lastPressTime = info.rt;
-          // wigglePiggy();
-          shakePiggy();
-          pressCount++;
-          trialState.trialPresses++;
-          taskTotalPresses++;
-
-          // Check if ratio requirement is met for reward
-          if (pressCount === ratio) {
-            trialState.trialReward += magnitude;
-            taskTotalReward += magnitude;
-            pressCount = 0;
-            dropCoin(magnitude, true);
-          }
-        },
-        valid_responses: ['b'],
-        rt_method: 'performance',
-        persist: true,
-        allow_held_key: false,
-        minimum_valid_rt: 0
-      });
     },
     on_load: function () {
-      const currentMag = jsPsych.evaluateTimelineVariable('magnitude');
-      const currentRatio = jsPsych.evaluateTimelineVariable('ratio');
+      const magnitude = jsPsych.evaluateTimelineVariable('magnitude');
+      const ratio = jsPsych.evaluateTimelineVariable('ratio');
+
+      // Record the viewport geometry this trial was presented at
+      trialState.viewportWidth = window.innerWidth;
+      trialState.viewportHeight = window.innerHeight;
+
+      // Flag the rotate-to-portrait gate (phone-landscape) during this trial, with onset offsets (ms).
+      // trialOnset is separate from trialStartTime below so RT measurement is unchanged.
+      const trialOnset = performance.now();
+      const isRotateGateVisible = () => {
+        const overlay = document.getElementById('rotate-overlay');
+        return !!overlay && getComputedStyle(overlay).display !== 'none';
+      };
+      let gateVisible = isRotateGateVisible();
+      if (gateVisible) {
+        trialState.wrongOrientation = true;
+        trialState.wrongOrientationTimes.push(Math.round(performance.now() - trialOnset));
+      }
+      const syncGateState = () => {
+        const now = performance.now();
+        const nowVisible = isRotateGateVisible();
+        if (nowVisible && !gateVisible) {
+          trialState.wrongOrientation = true;
+          trialState.wrongOrientationTimes.push(Math.round(now - trialOnset));
+        }
+        gateVisible = nowVisible;
+      };
 
       // Add magnitudes and ratios to settings for piggy tails
       settings.magnitudes = magnitudes;
       settings.ratios = ratios;
 
-      updatePiggyTails(currentMag, currentRatio, settings);
-      updatePersistentCoinContainer(); // Update the persistent coin container
-      observeResizing('coin-container', updatePersistentCoinContainer);
+      updatePiggyTails(magnitude, ratio, settings);
+      updatePersistentCoinContainer();
+      vigourResizeObserver = observeResizing('coin-container', updatePersistentCoinContainer);
 
       // Add fullscreen change listener to re-update piggy tails
       fsChangeHandler = () => {
         if (document.fullscreenElement || document.webkitFullscreenElement) {
-          updatePiggyTails(currentMag, currentRatio, settings);
+          updatePiggyTails(magnitude, ratio, settings);
         }
       };
       document.addEventListener('fullscreenchange', fsChangeHandler);
       document.addEventListener('webkitfullscreenchange', fsChangeHandler);
 
-      // Simulate keypresses for testing mode
+      // Re-layout tails and coin overlay on viewport changes (orientation, mobile toolbar, resize).
+      // Tails are positioned in px from the piggy's measured width, so they must be recomputed.
+      vigourResizeHandler = () => {
+        trialState.viewportChanged = true; // geometry changed mid-trial (rotation or mobile toolbar)
+        syncGateState();
+        if (vigourGateFrame !== null) cancelAnimationFrame(vigourGateFrame);
+        vigourGateFrame = requestAnimationFrame(() => {
+          vigourGateFrame = null;
+          syncGateState();
+        });
+        if (vigourResizeTimer) clearTimeout(vigourResizeTimer);
+        vigourResizeTimer = setTimeout(() => {
+          updatePiggyTails(magnitude, ratio, settings);
+          updatePersistentCoinContainer();
+        }, 150);
+      };
+      window.addEventListener('resize', vigourResizeHandler);
+      window.addEventListener('orientationchange', vigourResizeHandler);
+
+      // Set up pointerdown (touch/tap) listener on the piggybank
+      let pressCount = 0;
+      let lastPressTime = null;
+      const trialStartTime = performance.now();
+      const piggyContainer = document.getElementById('piggy-container');
+      vigourPiggyContainer = piggyContainer;
+
+      vigourPointerHandler = function (event) {
+        if (!event.isPrimary) return; // ignore secondary touches (multi-touch contamination)
+        if (event.button !== 0) return; // ignore right-click, middle-click, and stylus barrel buttons
+        syncGateState();
+        if (gateVisible) return;
+        event.preventDefault();
+        const now = performance.now();
+
+        const ptype = event.pointerType || 'unknown';
+        if (trialState.pointerType === null) {
+          trialState.pointerType = ptype; // modality the trial was started with
+        }
+        // Count presses per input type to detect mixed/switched input within a trial
+        trialState.pointerTypeCounts[ptype] = (trialState.pointerTypeCounts[ptype] || 0) + 1;
+
+        if (lastPressTime === null) {
+          // First tap: record RT from trial start
+          trialState.responseTime.push(now - trialStartTime);
+        } else {
+          trialState.responseTime.push(now - lastPressTime);
+        }
+        lastPressTime = now;
+
+        shakePiggy();
+        pressCount++;
+        trialState.trialPresses++;
+        taskTotalPresses++;
+
+        if (pressCount === ratio) {
+          trialState.trialReward += magnitude;
+          taskTotalReward += magnitude;
+          pressCount = 0;
+          dropCoin(magnitude, true);
+        }
+      };
+
+      if (piggyContainer) {
+        piggyContainer.addEventListener('pointerdown', vigourPointerHandler);
+      }
+
+      // Simulate taps for testing mode
       if (window.simulating) {
         const trial_presses = jsPsych.randomization.randomInt(1, 8);
-        const avg_rt = 500/trial_presses;
+        const avg_rt = 500 / trial_presses;
         for (let i = 0; i < trial_presses; i++) {
-          jsPsych.pluginAPI.pressKey('b', avg_rt * i + 1);
+          simulatePointerTap(piggyContainer, avg_rt * i + 1);
         }
       }
     },
     on_finish: function (data) {
-      // Clean up listener
+      // Clean up pointerdown listener
+      cleanupPointerListener(vigourPointerHandler, vigourPiggyContainer);
+      vigourPointerHandler = null;
+      vigourPiggyContainer = null;
+      // Also clean up any lingering keyboard listeners from other trials
       jsPsych.pluginAPI.cancelAllKeyboardResponses();
       vigourTrialCounter += 1;
       data.trial_number = vigourTrialCounter;
@@ -288,18 +430,38 @@ function piggyBankTrial(settings) {
         fsChangeHandler = null;
       }
 
+      // Clean up viewport resize listeners and any pending debounce
+      if (vigourResizeHandler) {
+        window.removeEventListener('resize', vigourResizeHandler);
+        window.removeEventListener('orientationchange', vigourResizeHandler);
+        vigourResizeHandler = null;
+      }
+      if (vigourResizeTimer) {
+        clearTimeout(vigourResizeTimer);
+        vigourResizeTimer = null;
+      }
+      if (vigourGateFrame !== null) {
+        cancelAnimationFrame(vigourGateFrame);
+        vigourGateFrame = null;
+      }
+      if (vigourResizeObserver) {
+        vigourResizeObserver.disconnect();
+        vigourResizeObserver = null;
+      }
+
       // Show warning for no response on easy trials
       if (data.trial_presses === 0 && data.timeline_variables.ratio === 1) {
-        var up_to_now = parseInt(jsPsych.data.get().last(1).select('n_warnings').values);
-        jsPsych.data.addProperties({
-          n_warnings: up_to_now + 1
-        });
-        // console.log(jsPsych.data.get().last(1).select('n_warnings').values[0]);
-        showTemporaryWarning("Didn't catch a response - moving on", 800); // Enable this line for non-stopping warning
+        const up_to_now = jsPsych.data.get().last(1).select('n_warnings').values[0] ?? 0;
+        jsPsych.data.addProperties({ n_warnings: up_to_now + 1 });
+        showTemporaryWarning("Didn't catch a response - moving on", 800);
       }
-      
-      // Clean up trial state reference
-      delete data.trialState;
+
+      // Warn (and count like a missed response) if a stylus / Apple Pencil was used
+      if ((data.pointer_type_counts?.pen || 0) > 0) {
+        const pen_up_to_now = jsPsych.data.get().last(1).select('n_warnings').values[0] ?? 0;
+        jsPsych.data.addProperties({ n_warnings: pen_up_to_now + 1 });
+        showTemporaryWarning("Please tap with your finger, not a stylus (e.g., Apple Pencil)", 800);
+      }
     }
   }
 };
@@ -324,9 +486,11 @@ function createVigourCoreTimeline(settings) {
         updateState("no_resume_10_minutes");
         updateState(`vigour_task_start`);
         createPersistentCoinContainer();
-        // Reset task counters
+        // Reset task counters (vigourTrialCounter must also be reset so trial_number
+        // data is correct and the end-of-task save fires on every run, not just the first)
         taskTotalReward = 0;
         taskTotalPresses = 0;
+        vigourTrialCounter = 0;
     };
 
     // Add cleanup callback to last trial
@@ -339,8 +503,11 @@ function createVigourCoreTimeline(settings) {
 
 export {
   createVigourCoreTimeline,
-  updatePersistentCoinContainer, 
-  observeResizing, 
+  updatePersistentCoinContainer,
+  observeResizing,
   dropCoin,
+  setupPointerListener,
+  cleanupPointerListener,
+  simulatePointerTap,
   VIGOUR_PRELOAD_IMAGES
 }

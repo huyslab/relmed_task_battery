@@ -4,7 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RELMED Task Battery</title>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "@utils/": "./core/utils/",
+                "@jspsych/": "./core/jspsych/",
+                "@tasks/": "./tasks/",
+                "@api/": "./api/",
+                "@images/": "./assets/images/"
+            }
+        }
+    </script>
+
+    <!-- jsPsych and task plugins are needed to import the task registry -->
+    <script src="core/jspsych/jspsych.js"></script>
+    <script src="core/jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="core/jspsych/plugin-html-button-response.js"></script>
+    <script src="core/jspsych/plugin-instructions.js"></script>
+    <script src="core/jspsych/plugin-preload.js"></script>
+    <script src="core/jspsych/plugin-call-function.js"></script>
+    <script src="core/jspsych/plugin-fullscreen.js"></script>
+    <script src="core/jspsych/plugin-survey-multi-choice.js"></script>
+    <script src="core/jspsych/plugin-survey-likert.js"></script>
+    <script src="tasks/card-choosing/plugin-card-choosing.js"></script>
+    <script src="tasks/control/plugins/plugin-explore-ship.js"></script>
+    <script src="tasks/control/plugins/plugin-explore-ship-feedback.js"></script>
+    <script src="tasks/control/plugins/plugin-predict-home-base.js"></script>
+    <script src="tasks/control/plugins/plugin-reward-ship.js"></script>
+    <script src="tasks/control/plugins/plugin-reward-prompt.js"></script>
+    <script src="tasks/reversal/plugin-reversal.js"></script>
+    <script src="tasks/open-text/plugin-open-text.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            --bg: #f7f6f3;
+            --surface: #ffffff;
+            --surface-muted: #f3f2ef;
+            --border: #e7e5e1;
+            --border-strong: #d6d3cd;
+            --text: #1c1a17;
+            --text-muted: #6f6a63;
+            --text-faint: #a29d95;
+            --accent: #0f6b62;
+            --accent-hover: #0b5850;
+            --accent-soft: #e5f1ef;
+            --accent-text: #ffffff;
+            --danger: #b42318;
+            --shadow: 0 1px 2px rgba(28, 26, 23, 0.04), 0 2px 6px rgba(28, 26, 23, 0.04);
+            --shadow-active: 0 1px 2px rgba(28, 26, 23, 0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #111312;
+                --surface: #181b1a;
+                --surface-muted: #1f2321;
+                --border: #2a2f2d;
+                --border-strong: #3a403d;
+                --text: #ecebe8;
+                --text-muted: #a3a09a;
+                --text-faint: #6f6c67;
+                --accent: #5cc0b2;
+                --accent-hover: #7dd0c4;
+                --accent-soft: rgba(92, 192, 178, 0.12);
+                --accent-text: #0d1513;
+                --danger: #f2877d;
+                --shadow: none;
+                --shadow-active: none;
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,287 +90,668 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #333;
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
+        button, input, select {
+            font: inherit;
+            color: inherit;
         }
 
-        .title {
-            font-size: 28px;
+        .page {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 40px 16px 48px;
+        }
+
+        header {
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            font-size: 24px;
             font-weight: 600;
-            margin-bottom: 10px;
-            color: #2c3e50;
+            letter-spacing: -0.02em;
         }
 
         .subtitle {
-            font-size: 16px;
-            color: #7f8c8d;
-            margin-bottom: 30px;
+            color: var(--text-muted);
+            margin-top: 2px;
         }
 
-        .form-group {
-            margin-bottom: 25px;
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 340px;
+            gap: 24px;
+            align-items: start;
         }
 
-        label {
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        /* Settings */
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            padding: 18px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 640px) {
+            .settings {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .field-label {
             display: block;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
-            margin-bottom: 8px;
-            color: #555;
-            text-align: left;
+            color: var(--text-muted);
+            margin-bottom: 6px;
         }
 
-        input[type="text"],
-        select {
+        input[type="text"], select {
             width: 100%;
-            padding: 12px 16px;
-            font-size: 16px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            transition: border-color 0.3s ease;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
             outline: none;
-            background: white;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
 
-        input[type="text"]:focus,
-        select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+        .segmented {
+            display: flex;
+            height: 36px;
+            padding: 3px;
+            gap: 2px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .segmented button {
+            flex: 1;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .segmented button:hover {
+            color: var(--text);
+        }
+
+        .segmented button.active {
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow-active);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .segmented button.active {
+                background: var(--border-strong);
+            }
+        }
+
+        /* Mode switch */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .toolbar .segmented {
+            flex: 0 1 280px;
+        }
+
+        .count {
+            color: var(--text-faint);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        /* Option list */
+        .group-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin: 20px 0 8px;
+        }
+
+        .group-title:first-child {
+            margin-top: 0;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 8px;
+        }
+
+        .option {
+            display: flex;
+            gap: 12px;
+            text-align: left;
+            padding: 12px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .option:hover:not(:disabled) {
+            border-color: var(--border-strong);
+        }
+
+        .option.selected {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .option:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .radio {
+            flex: none;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            border: 1.5px solid var(--border-strong);
+            border-radius: 50%;
+            transition: border 0.15s;
+        }
+
+        .option.selected .radio {
+            border: 5px solid var(--accent);
+        }
+
+        .option-body {
+            min-width: 0;
+        }
+
+        .option-name {
+            font-weight: 600;
+        }
+
+        .option-key {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 0 6px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            vertical-align: 1px;
+        }
+
+        .option-desc {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        /* Summary panel */
+        .summary {
+            position: sticky;
+            top: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .summary-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .chip {
+            padding: 1px 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+        }
+
+        .chip.accent {
+            color: var(--accent);
+            border-color: transparent;
+            background: var(--accent-soft);
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: step;
+            max-height: 340px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .steps li {
+            counter-increment: step;
+            display: flex;
+            gap: 10px;
+            padding: 3px 0;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            flex: none;
+            width: 20px;
+            height: 20px;
+            margin-top: 1px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border-radius: 50%;
+        }
+
+        .steps li.minor {
+            color: var(--text-muted);
+        }
+
+        .steps li.skipped {
+            counter-increment: none;
+            color: var(--text-faint);
+            text-decoration: line-through;
+        }
+
+        .steps li.skipped::before {
+            content: "–";
+            background: none;
+        }
+
+        .description {
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .meta {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text-faint);
+        }
+
+        .url-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .url-row input {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+        }
+
+        .ghost-button {
+            flex: none;
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .ghost-button:hover {
+            background: var(--surface-muted);
+        }
+
+        .checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .checkbox input {
+            accent-color: var(--accent);
         }
 
         .start-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            height: 42px;
             border: none;
-            padding: 14px 32px;
-            font-size: 16px;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            color: var(--accent-text);
             font-weight: 600;
-            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
+            transition: background 0.15s;
         }
 
-        .start-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .start-button:active {
-            transform: translateY(0);
+        .start-button:hover:not(:disabled) {
+            background: var(--accent-hover);
         }
 
         .start-button:disabled {
-            background: #bdc3c7;
+            opacity: 0.4;
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
 
         .error-message {
-            color: #e74c3c;
-            font-size: 14px;
-            margin-top: 10px;
+            color: var(--danger);
+            font-size: 13px;
+        }
+
+        .error-message:empty {
             display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        
-        <form id="startForm">
-            <div class="form-group">
-                <label for="participantId">Participant ID:</label>
-                <input 
-                    type="text" 
-                    id="participantId" 
-                    name="participantId" 
-                    placeholder="Enter participant ID"
-                    required
-                    autocomplete="off"
-                >
-            </div>
-            
-            <div class="form-group">
-                <label for="context">Context:</label>
-                <select id="context" name="context" required>
-                    <option value="">Select context</option>
-                    <option value="relmed">RELMED</option>
-                    <option value="prolific">Prolific</option>
-                </select>
-            </div>
+    <div class="page">
+        <header>
+            <h1>RELMED Task Battery</h1>
+            <div class="subtitle">Preview a full module or a single task</div>
+        </header>
 
-            <div class="form-group">
-                <label for="task">What to run:</label>
-                <!-- Values carry which registry the name comes from; the redirect below turns
-                     that into either a module= or a task= parameter for experiment.html. -->
-                <select id="task" name="task" required>
-                    <option value="">Select a task or module</option>
-                    <optgroup label="Modules">
-                        <option value="module:full_battery">Full battery</option>
-                        <option value="module:screening">Screening</option>
-                    </optgroup>
-                    <optgroup label="Single tasks">
-                        <option value="task:PILT">PILT (card choosing)</option>
-                        <option value="task:WM">WM (one-card)</option>
-                        <option value="task:post_PILT_test">Post-PILT test</option>
-                        <option value="task:post_WM_test">Post-WM test</option>
-                        <option value="task:reversal">Reversal</option>
-                        <option value="task:vigour">Vigour</option>
-                        <option value="task:vigour_test">Vigour test</option>
-                        <option value="task:PIT">PIT</option>
-                        <option value="task:control">Control (shipping)</option>
-                        <option value="task:max_press_test">Max press test</option>
-                        <option value="task:pavlovian_lottery">Pavlovian lottery</option>
-                        <option value="task:delay_discounting">Delay discounting</option>
-                        <option value="task:open_text">Open text</option>
-                    </optgroup>
-                </select>
-            </div>
+        <div class="layout">
+            <main>
+                <section class="card settings">
+                    <div>
+                        <label class="field-label" for="participantId">Participant ID</label>
+                        <input type="text" id="participantId" value="TST" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div>
+                        <span class="field-label">Context</span>
+                        <div class="segmented" id="context">
+                            <button type="button" data-value="relmed">RELMED</button>
+                            <button type="button" data-value="prolific">Prolific</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label" for="session">Session</label>
+                        <select id="session"></select>
+                    </div>
+                    <div>
+                        <span class="field-label">Run mode</span>
+                        <div class="segmented" id="runMode">
+                            <button type="button" data-value="regular">Regular</button>
+                            <button type="button" data-value="simulate">Simulate</button>
+                        </div>
+                    </div>
+                </section>
 
-            <div class="form-group">
-                <label for="session">Session:</label>
-                <select id="session" name="session" required>
-                    <!-- Values are the canonical keys from api/session-registry.js;
-                         resolveSession also accepts "Session N", "Week N" and aliases. -->
-                    <option value="">Select session</option>
-                    <option value="screening">Screening (training)</option>
-                    <option value="wk0">Week 0</option>
-                    <option value="wk2">Week 2</option>
-                    <option value="wk4">Week 4</option>
-                    <option value="wk24">Week 24</option>
-                    <option value="wk28">Week 28</option>
-                </select>
-            </div>
+                <div class="toolbar">
+                    <div class="segmented" id="mode">
+                        <button type="button" data-value="module">Modules</button>
+                        <button type="button" data-value="task">Single tasks</button>
+                    </div>
+                    <span class="count" id="count"></span>
+                </div>
 
-            <button type="submit" class="start-button" id="startButton">
-                Start Experiment
-            </button>
-            
-            <div class="error-message" id="errorMessage">
-                Please enter a valid participant ID
-            </div>
-        </form>
+                <div id="optionList"></div>
+            </main>
+
+            <aside class="card summary">
+                <div id="preview"></div>
+                <div class="url-row">
+                    <input type="text" id="url" readonly aria-label="Experiment URL">
+                    <button type="button" class="ghost-button" id="copyButton">Copy</button>
+                </div>
+                <label class="checkbox"><input type="checkbox" id="newTab"> Open in new tab</label>
+                <button type="button" class="start-button" id="startButton">Start</button>
+                <div class="error-message" id="errorMessage"></div>
+            </aside>
+        </div>
     </div>
 
-    <script>
-        document.getElementById('startForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+    <script type="module">
+        import { TaskRegistry } from '@api/task-registry.js';
+        import { ModuleRegistry } from '@api/module-registry.js';
+        import { isElementIncluded } from '@api/utils.js';
+        import { SessionRegistry } from '@api/session-registry.js';
 
-            const participantId = document.getElementById('participantId').value.trim();
-            const context = document.getElementById('context').value;
-            const task = document.getElementById('task').value;
-            const session = document.getElementById('session').value;
-            const errorMessage = document.getElementById('errorMessage');
+        // Modules replicating relmed_trial1, in the order they are run within a session
+        const TRIAL1_MODULES = ['screening', 'pilt_to_test', 'wm', 'reversal', 'control', 'quests'];
+        const STORAGE_KEY = 'relmed_task_selector';
 
-            // Hide error message
-            errorMessage.style.display = 'none';
+        // Sessions come from the session registry, in the order the study runs them
+        const sessions = Object.keys(SessionRegistry);
 
-            // Validate participant ID
-            if (!participantId) {
-                errorMessage.textContent = 'Please enter a participant ID';
-                errorMessage.style.display = 'block';
-                return;
-            }
+        const state = {
+            participantId: 'TST',
+            context: 'relmed',
+            session: 'wk0',
+            runMode: 'regular',
+            mode: 'module',
+            module: 'pilt_to_test',
+            task: 'PILT',
+            newTab: false
+        };
 
-            // Check if participant ID contains only valid characters (alphanumeric, hyphens, underscores)
-            if (!/^[a-zA-Z0-9_-]+$/.test(participantId)) {
-                errorMessage.textContent = 'Participant ID can only contain letters, numbers, hyphens, and underscores';
-                errorMessage.style.display = 'block';
-                return;
-            }
+        try {
+            Object.assign(state, JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'));
+        } catch (e) {}
 
-            // Validate context selection
-            if (!context) {
-                errorMessage.textContent = 'Please select a context';
-                errorMessage.style.display = 'block';
-                return;
-            }
+        const el = (id) => document.getElementById(id);
 
-            // Validate task selection
-            if (!task) {
-                errorMessage.textContent = 'Please select a task or module';
-                errorMessage.style.display = 'block';
-                return;
-            }
+        // Escape text before inserting it into HTML
+        const escapeHtml = (value) => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-            // Validate session selection
-            if (!session) {
-                errorMessage.textContent = 'Please select a session';
-                errorMessage.style.display = 'block';
-                return;
-            }
+        const isModuleAvailable = (name) => !ModuleRegistry[name].sessions || ModuleRegistry[name].sessions.includes(state.session);
+        const isTaskAvailable = (name) => !TaskRegistry[name].sequences || state.session in TaskRegistry[name].sequences;
 
-            // Redirect to experiment.html with participant_id, context, session, and either a
-            // module or a task - experiment.html accepts one or the other.
-            // `kind` is "module" or "task" - it names the parameter, so it is checked against
-            // the two allowed names rather than encoded, and the rest are encoded values.
-            const [kind, name] = task.split(':');
-            if (kind !== 'module' && kind !== 'task') {
-                errorMessage.textContent = 'Please select a task or module';
-                errorMessage.style.display = 'block';
-                return;
-            }
-            const params = new URLSearchParams({
-                participant_id: participantId,
-                context,
-                [kind]: name,
-                session
+        function optionButton(key, name, description, available, selected) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'option' + (selected ? ' selected' : '');
+            button.disabled = !available;
+            button.dataset.value = key;
+            button.innerHTML = `<span class="radio"></span>
+                <span class="option-body">
+                    <span class="option-name">${escapeHtml(name)}</span><span class="option-key">${escapeHtml(key)}</span>
+                    <span class="option-desc" style="display: block;">${escapeHtml(available ? description : `Not available for ${state.session}`)}</span>
+                </span>`;
+            button.addEventListener('click', () => {
+                state[state.mode] = key;
+                render();
             });
-            window.location.href = `experiment.html?${params}`;
-        });
+            return button;
+        }
 
-        // Enable real-time validation
-        document.getElementById('participantId').addEventListener('input', function() {
-            const errorMessage = document.getElementById('errorMessage');
-            if (this.value.trim()) {
-                errorMessage.style.display = 'none';
+        function renderGroup(container, title, keys, makeButton) {
+            if (!keys.length) return;
+            const heading = document.createElement('div');
+            heading.className = 'group-title';
+            heading.textContent = title;
+            const grid = document.createElement('div');
+            grid.className = 'options';
+            keys.forEach(key => grid.appendChild(makeButton(key)));
+            container.append(heading, grid);
+        }
+
+        function renderOptions() {
+            const container = el('optionList');
+            container.innerHTML = '';
+
+            if (state.mode === 'module') {
+                const moduleButton = (key) => {
+                    const module = ModuleRegistry[key];
+                    return optionButton(key, module.name, module.description || '', isModuleAvailable(key), state.module === key);
+                };
+                const moduleKeys = Object.keys(ModuleRegistry);
+                renderGroup(container, 'RELMED trial 1', TRIAL1_MODULES.filter(k => k in ModuleRegistry), moduleButton);
+                renderGroup(container, 'Custom', moduleKeys.filter(k => !TRIAL1_MODULES.includes(k)), moduleButton);
+                el('count').textContent = `${moduleKeys.filter(isModuleAvailable).length} of ${moduleKeys.length} available`;
+            } else {
+                const taskKeys = Object.keys(TaskRegistry);
+                renderGroup(container, 'Tasks', taskKeys, (key) => {
+                    const task = TaskRegistry[key];
+                    return optionButton(key, task.name, task.description, isTaskAvailable(key), state.task === key);
+                });
+                el('count').textContent = `${taskKeys.filter(isTaskAvailable).length} of ${taskKeys.length} available`;
+            }
+        }
+
+        function describeElement(element) {
+            if (element.type === 'task') {
+                const label = TaskRegistry[element.name]?.name || element.name;
+                return element.name === 'acceptability_judgment' ? `${label} (${element.config?.task_name})` : label;
+            }
+            if (element.type === 'instructions') return `Message: ${element.config.text.replace(/_/g, ' ')}`;
+            if (element.type === 'bonus') return 'Bonus';
+            return element.type;
+        }
+
+        function renderPreview() {
+            const chips = [
+                SessionRegistry[state.session].name,
+                state.context === 'relmed' ? 'RELMED' : 'Prolific'
+            ].map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('') +
+                (state.runMode === 'simulate' ? '<span class="chip accent">Simulation</span>' : '');
+
+            const preview = el('preview');
+            if (state.mode === 'module') {
+                const module = ModuleRegistry[state.module];
+                const settings = { session: state.session, context: state.context };
+                const items = module.elements.map(element => {
+                    const classes = [
+                        isElementIncluded(element, settings) ? '' : 'skipped',
+                        element.type === 'task' ? '' : 'minor'
+                    ].join(' ').trim();
+                    return `<li class="${classes}">${escapeHtml(describeElement(element))}</li>`;
+                });
+                preview.innerHTML = `<div class="summary-title">${escapeHtml(module.name)}</div>
+                    <div class="chips">${chips}</div>
+                    <ol class="steps" style="margin-top: 16px;">${items.join('')}</ol>`;
+            } else {
+                const task = TaskRegistry[state.task];
+                const sequences = task.sequences ? Object.keys(task.sequences).join(', ') : 'session independent';
+                preview.innerHTML = `<div class="summary-title">${escapeHtml(task.name)}</div>
+                    <div class="chips">${chips}</div>
+                    <div class="description" style="margin-top: 16px;">${escapeHtml(task.description)}
+                        <div class="meta">Sequences: ${escapeHtml(sequences)}</div>
+                    </div>`;
+            }
+        }
+
+        function buildUrl() {
+            const params = new URLSearchParams({
+                participant_id: state.participantId,
+                context: state.context,
+                session: state.session,
+                [state.mode]: state[state.mode]
+            });
+            if (state.runMode === 'simulate') params.set('simulate', '1');
+            return new URL(`experiment.html?${params}`, window.location.href).href;
+        }
+
+        function validate() {
+            if (!state.participantId) return 'Please enter a participant ID';
+            if (!/^[a-zA-Z0-9_-]+$/.test(state.participantId)) return 'Participant ID can only contain letters, numbers, hyphens, and underscores';
+            if (state.mode === 'module' && !isModuleAvailable(state.module)) return `${ModuleRegistry[state.module].name} is not available for ${state.session}`;
+            if (state.mode === 'task' && !isTaskAvailable(state.task)) return `${TaskRegistry[state.task].name} has no sequence for ${state.session}`;
+            return '';
+        }
+
+        function render() {
+            // Fall back to defaults if stored selections no longer exist
+            if (!(state.module in ModuleRegistry)) state.module = Object.keys(ModuleRegistry)[0];
+            if (!(state.task in TaskRegistry)) state.task = Object.keys(TaskRegistry)[0];
+            if (!sessions.includes(state.session)) state.session = sessions[0];
+            if (!['relmed', 'prolific'].includes(state.context)) state.context = 'relmed';
+            if (!['regular', 'simulate'].includes(state.runMode)) state.runMode = 'regular';
+            if (!['module', 'task'].includes(state.mode)) state.mode = 'module';
+
+            for (const id of ['context', 'runMode', 'mode']) {
+                el(id).querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.value === state[id]));
+            }
+            el('session').value = state.session;
+
+            renderOptions();
+            renderPreview();
+
+            const error = validate();
+            el('errorMessage').textContent = error;
+            el('startButton').disabled = Boolean(error);
+            el('url').value = error ? '' : buildUrl();
+            el('startButton').textContent = state.runMode === 'simulate' ? 'Start simulation' : 'Start';
+
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        // Wire up controls
+        el('session').innerHTML = sessions.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(SessionRegistry[s].name)}</option>`).join('');
+        for (const id of ['context', 'runMode', 'mode']) {
+            el(id).querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+                state[id] = b.dataset.value;
+                render();
+            }));
+        }
+        el('session').addEventListener('change', (e) => { state.session = e.target.value; render(); });
+        el('participantId').addEventListener('input', (e) => { state.participantId = e.target.value.trim(); render(); });
+        el('newTab').addEventListener('change', (e) => { state.newTab = e.target.checked; render(); });
+        el('copyButton').addEventListener('click', () => {
+            navigator.clipboard?.writeText(el('url').value).then(() => {
+                el('copyButton').textContent = 'Copied';
+                setTimeout(() => { el('copyButton').textContent = 'Copy'; }, 1500);
+            });
+        });
+        el('startButton').addEventListener('click', () => {
+            if (validate()) return;
+            if (state.newTab) {
+                window.open(buildUrl(), '_blank');
+            } else {
+                window.location.href = buildUrl();
             }
         });
 
-        // Hide error message when context is selected
-        document.getElementById('context').addEventListener('change', function() {
-            const errorMessage = document.getElementById('errorMessage');
-            if (this.value) {
-                errorMessage.style.display = 'none';
-            }
-        });
-
-        // Hide error message when task is selected
-        document.getElementById('task').addEventListener('change', function() {
-            const errorMessage = document.getElementById('errorMessage');
-            if (this.value) {
-                errorMessage.style.display = 'none';
-            }
-        });
-
-        // Hide error message when session is selected
-        document.getElementById('session').addEventListener('change', function() {
-            const errorMessage = document.getElementById('errorMessage');
-            if (this.value) {
-                errorMessage.style.display = 'none';
-            }
-        });
-
-        // Focus on the input field when page loads
-        window.addEventListener('load', function() {
-            document.getElementById('participantId').focus();
-        });
+        el('participantId').value = state.participantId;
+        el('newTab').checked = state.newTab;
+        render();
     </script>
 </body>
 </html>

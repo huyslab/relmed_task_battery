@@ -101,8 +101,9 @@ Modules are predefined collections of tasks designed to be completed in a single
 
 #### Available Modules
 
-- **`full_battery`**: Complete RELMED task battery with all tasks and questionnaires
-- **`screening`**: Shortened version for participant screening with key tasks
+- **`full_battery`**: Complete RELMED task battery with all tasks, for a single in-lab sitting
+- **`screening`**: RELMED trial 1 screening module
+- **`pilt_to_test`**, **`wm`**, **`reversal`**, **`control`**, **`quests`**: RELMED trial 1 home assessment modules (replicating `relmed_trial1`; questionnaires, instruction video and mood/medication items are not yet part of the battery and are skipped)
 
 #### Using Modules
 
@@ -176,6 +177,8 @@ export const ModuleRegistry = {
     }
 };
 ```
+
+Elements can be limited to certain sessions or contexts with optional `sessions` and `contexts` arrays, e.g. `{ type: "task", name: "open_text", sessions: ["wk24", "wk28"] }`. A module-level `sessions` array lists the sessions the module is offered for in the task selector.
 
 ### Required Files and Dependencies
 
@@ -268,6 +271,19 @@ Use these exact strings when calling `createTaskTimeline()`:
 Use these exact strings when calling `createModuleTimeline()`:
 - `'full_battery'` - Complete RELMED task battery 
 - `'screening'` - Shortened screening version
+- `'pilt_to_test'`, `'wm'`, `'reversal'`, `'control'`, `'quests'` - RELMED trial 1 modules
+
+## Task Preview Selector
+
+`index.html` is a selector for previewing the battery. It has two modes:
+- **Module mode**: run a full module (RELMED trial 1 modules or custom modules such as `full_battery`)
+- **Single task mode**: run any task from the task registry on its own
+
+and lets you choose the context (RELMED or Prolific), session (screening or week) and whether to run normally or as a simulation. The participant ID defaults to `TST`. Options that do not exist for the chosen session are disabled.
+
+The selector builds a launch URL for `experiment.html` (see [Launching a Session](#launching-a-session)).
+
+As in `relmed_trial1`, the Prolific context uses a 3 s response deadline and fullscreen, while RELMED home modules use a 4 s deadline and no fullscreen. Participant IDs containing `TST` or `debug` are treated as debug participants (no refresh prompt, link back to the selector at the end).
 
 ### Launching a Session
 
@@ -281,8 +297,9 @@ single task:
 | `participant_id` | Participant identifier. Containing `simulate` runs jsPsych's simulate mode, `debug` or `TST` relaxes the termination guard |
 | `context` | `relmed` or `prolific` - governs where data is submitted |
 | `session` | Session label from the hosting site, e.g. `Session 1` or `Week 0`. Required, and must resolve against the session registry - see [Sessions](#sessions) |
+| `simulate` | `1` (or `true`) runs jsPsych's simulate mode |
 
-`index.html` provides a form that builds these URLs for local runs.
+`index.html` provides a selector that builds these URLs (see [Task Preview Selector](#task-preview-selector)).
 
 ## Sessions
 
@@ -363,17 +380,17 @@ Each example demonstrates proper file loading, API usage, and task configuration
 
 This example shows how to:
 - Load all required dependencies for multiple tasks
-- Use URL parameters to select modules (`full_battery` vs `screening`)
+- Use URL parameters to select a module or a single task (see Task Preview Selector)
 - Handle module configuration and timeline creation
 - Support simulation mode for testing
 
 **Key features demonstrated:**
 ```javascript
 // Module selection based on URL parameter
-const module_name = session == "screening" ? 'screening' : 'full_battery';
+const moduleName = urlParams.get('module') || (window.session == "screening" ? 'screening' : 'full_battery');
 
 // Module timeline creation
-const timeline = await createModuleTimeline(module_name, settings);
+const timeline = await createModuleTimeline(moduleName, settings);
 
 // Complete experiment structure
 const fullTimeline = [

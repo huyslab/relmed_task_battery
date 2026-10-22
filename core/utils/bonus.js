@@ -164,7 +164,8 @@ function bonusTrial(module) {
         endExperiment();
     },
     simulation_options: {
-      simulate: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' // Simulate the bonus trial in development mode
+      // Simulate the bonus trial in development mode and for debug participants (e.g. previews on GitHub Pages)
+      simulate: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || Boolean(window.debug)
     }
   };
 }

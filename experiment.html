@@ -204,7 +204,7 @@
     <script type="module">
         // Import task registry functions
         import { createModuleTimeline, createTaskTimeline, describeAcceptedSessions,
-                 getModuleInfo, getTask, getTaskInfo, resolveSession } from '@api/index.js';
+                 getModule, getModuleInfo, getTask, getTaskInfo, resolveSession } from '@api/index.js';
         import { bonusTrial, enterExperiment, getResumptionState, saveDataREDCap,
                  signalLoadSuccess } from '@utils/index.js';
 
@@ -217,7 +217,8 @@
             on_close: () => { saveDataREDCap(); },
             on_finish: function(data) {
                 // Display results
-                jsPsych.getDisplayElement().innerHTML = '<p>Thank you for participating! You may now close this tab.</p>';
+                jsPsych.getDisplayElement().innerHTML = '<p>Thank you for participating! You may now close this tab.</p>' +
+                    (window.debug ? '<p><a href="index.html">Back to task selector</a></p>' : '');
             }
         });
 
@@ -238,7 +239,7 @@
         }
         window.context = requestedContext || 'relmed';
         window.participantID = urlParams.get('participant_id') || '';
-        window.simulating = urlParams.get('simulate') === '1' || window.participantID.includes("simulate");
+        window.simulating = ['1', 'true'].includes(urlParams.get('simulate')) || window.participantID.includes("simulate");
         window.debug = window.participantID.includes("debug") || window.participantID.includes("TST");
         // Resolves the website's `module_state`, falling back to the older `state` name
         window.last_state = getResumptionState();
@@ -295,6 +296,9 @@
 
         // Recorded against every submission, so the data says which run this was
         window.module = moduleName || taskName;
+        // Some tasks still check window.task for module-specific behaviour (e.g. "screening")
+        window.task = window.module;
+        window.max_instruction_fails = 3;
 
         // What a single-task run pays. A task without an entry here gets no bonus trial at
         // all: computeTotalBonus scales performance between max_bonus and
@@ -338,7 +342,12 @@
 
                 // The resolved session drives the whole run. Passed as runtime config, which
                 // is applied last, so it holds for every task in a module too.
-                const runConfig = { session: window.sessionKey };
+                const runConfig = {
+                    session: window.sessionKey,
+                    context: window.context,
+                    // Prolific participants get a shorter response deadline, as in relmed_trial1
+                    ...(window.context === "prolific" ? { default_response_deadline: 3000 } : {})
+                };
 
                 let timeline;
                 if (runningModule) {
@@ -358,7 +367,14 @@
                 // A module decides for itself where its bonus is revealed, through a "bonus"
                 // element in its own definition. A single task has no such definition, so it
                 // is wrapped in a one-task module here to reveal its bonus at the end.
-                const fullTimeline = [enterExperiment, ...timeline];
+                // Fullscreen for Prolific and in-lab modules; RELMED home modules run embedded in relmed.ac.uk
+                const useFullscreen = window.context === "prolific" || Boolean(runningModule && getModule(moduleName).fullscreen);
+                const fullscreenTrials = useFullscreen ? [{
+                    type: jsPsychFullscreen,
+                    fullscreen_mode: true,
+                    message: '<p>The experiment will switch to full screen mode when you press the button below.</p>'
+                }] : [];
+                const fullTimeline = [...fullscreenTrials, enterExperiment, ...timeline];
                 if (!runningModule && bonusRules[taskName]) {
                     const singleTaskModule = {
                         elements: [

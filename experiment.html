@@ -73,46 +73,75 @@
     
     <script type="module">
         // Import task registry functions
-        import { createModuleTimeline, getModuleInfo } from '@api/index.js';
+        import { createModuleTimeline, createTaskTimeline, getModule, getModuleInfo, getTaskInfo } from '@api/index.js';
         import { enterExperiment } from '@utils/index.js';
 
         // Get parameters from URL
-        window.participantID = new URLSearchParams(window.location.search).get('participant_id') || '';
-        window.simulating = window.participantID.includes("simulate") || false;
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Context: explicit ?context=, otherwise inferred from relmed_trial1 style PID parameters
+        window.context = urlParams.get('context') || (urlParams.has('PROLIFIC_PID') && !urlParams.has('RELMED_PID') ? 'prolific' : 'relmed');
+        window.participantID = urlParams.get('participant_id') || urlParams.get('RELMED_PID') || urlParams.get('PROLIFIC_PID') || '';
+        window.simulating = urlParams.get('simulate') === 'true' || window.participantID.includes("simulate");
+        window.debug = window.participantID.includes("debug") || window.participantID.includes("TST");
         console.log(window.simulating);
+
+        // Configurations
+        window.session = urlParams.get('session') || 'wk0';
+        window.last_state = urlParams.get('state') || 'none';
+        window.session_state = JSON.parse(urlParams.get('session_state') || '{}');
+        window.module_start_time = new Date().toISOString();
+        window.max_instruction_fails = 3;
+
+        // Run a single task (?task=) or a module (?module=); default module follows the session
+        const taskName = urlParams.get('task');
+        const moduleName = taskName ? null : (urlParams.get('module') || (window.session == "screening" ? 'screening' : 'full_battery'));
+        window.module = moduleName || taskName;
+        window.task = window.module; // Tasks check window.task for module-specific behaviour (e.g. "screening")
 
         // Initialize jsPsych
         window.jsPsych = initJsPsych({
             display_element: 'display_element',
             on_finish: function(data) {
                 // Display results
-                jsPsych.getDisplayElement().innerHTML = session == "screening" ? '<p>Thank you for participating! You may now close this tab.</p>' : '<p>Thank you for participating! Please call the experimenter.</p>';
+                let message = moduleName === "full_battery" ? '<p>Thank you for participating! Please call the experimenter.</p>' : '<p>Thank you for participating! You may now close this tab.</p>';
+                if (window.debug) {
+                    message += '<p><a href="index.html">Back to task selector</a></p>';
+                }
+                jsPsych.getDisplayElement().innerHTML = message;
             }
         });
 
-        // Configurations
-        window.session = new URLSearchParams(window.location.search).get('session') || 'wk0';
-        window.module = new URLSearchParams(window.location.search).get('module') ;
-
         const settings = {
             sequence: window.session,
-            session: window.session
+            session: window.session,
+            context: window.context,
+            // Prolific participants get a shorter response deadline, as in relmed_trial1
+            ...(window.context === "prolific" ? { default_response_deadline: 3000 } : {})
         };
 
         // Function to run the experiment
         async function runExperiment() {
             try {
-                // Which module to run
-                const module_name = session == "screening" ? 'screening' : 'full_battery';
-
-                // Get module information
-                const moduleInfo = getModuleInfo(module_name);
-                console.log('Module info:', moduleInfo);
-
-                // Create the timeline
-                const timeline = await createModuleTimeline(module_name, settings);
+                // Create the timeline for the selected module or task
+                let timeline;
+                if (moduleName) {
+                    console.log('Module info:', getModuleInfo(moduleName));
+                    timeline = await createModuleTimeline(moduleName, settings);
+                } else {
+                    console.log('Task info:', getTaskInfo(taskName));
+                    timeline = await createTaskTimeline(taskName, settings);
+                }
                 console.log('Timeline created:', timeline);
-                
+
+                // Fullscreen for Prolific and in-lab modules; RELMED home modules run embedded in relmed.ac.uk
+                const useFullscreen = window.context === "prolific" || Boolean(moduleName && getModule(moduleName).fullscreen);
+                const startExperiment = useFullscreen ? enterExperiment : {
+                    type: jsPsychCallFunction,
+                    func: () => {},
+                    on_start: enterExperiment.on_start
+                };
+
                 const exitFullscreen = {
                     type: jsPsychFullscreen,
                     fullscreen_mode: false
@@ -120,9 +149,9 @@
                 
                 // Create the complete timeline
                 const fullTimeline = [
-                    enterExperiment,
+                    startExperiment,
                     ...timeline,
-                    exitFullscreen
+                    ...(useFullscreen ? [exitFullscreen] : [])
                 ];
                 
                 // Run the experiment
@@ -151,7 +180,7 @@
                 jsPsych.getDisplayElement().innerHTML = `
                     <div style="text-align: center; padding: 50px;">
                         <h2>Error Loading Experiment</h2>
-                        <p>There was an error loading the card choosing task:</p>
+                        <p>There was an error loading ${moduleName ? `module "${moduleName}"` : `task "${taskName}"`}:</p>
                         <p><strong>${error.message}</strong></p>
                         <p>Please check the console for more details.</p>
                     </div>

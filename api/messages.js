@@ -30,6 +30,63 @@ const formatted_warning_msg = `
 `;
 
 
+const learningGamesIntro = `<p>The purpose of this session is to examine how people learn from positive and negative feedback while playing games.
+    <p>You will play a few simple trial-and-error learning games. Your goal in each game is to win as many coins as possible.</p>
+    <p>The games may feel a bit fast-paced because we're interested in your quick, intuitive decisions. Since they're designed around learning from experience, making mistakes is completely expected. Over time, you'll figure out better choices and improve your performance.</p>`;
+
+const warningExplanation = `
+    <p>If at some point you are taking too long to respond, you might see a message like this:</p><br>
+    ${formatted_warning_msg}
+    <br><p>It is perfectly natural to take a bit longer when you are learning something new. However, if you see this message a few times, it may be a sign that you are overthinking your choices.</p>
+    <p>If at any point you feel like you need some assistance, you can find our contact details by pressing the question mark in the top right corner. We are happy to help.</p>`;
+
+// Shown instead of the welcome message when a RELMED participant resumes an interrupted module
+const resumptionMessage = {
+    message: `<p>Welcome back to this module!</p>
+        <p>It seems that your participation has been interrupted. Don't worry, you can continue from where you left off.</p>
+        <p>Please try to complete the module in one go, without interruption.</p>`,
+    data: { trialphase: "resumption_instructions" }
+};
+
+const isResuming = (settings) => settings.context === "relmed" && window.last_state && window.last_state !== "none";
+
+// Context-specific welcome message (relmed_trial1 welcome_msgs)
+const welcomeMessage = (settings) => {
+    if (isResuming(settings)) return resumptionMessage;
+
+    if (settings.context === "prolific") {
+        return [`<p><b>Thank you for taking part in this study!</b></p>${learningGamesIntro}`];
+    }
+
+    return [`<p><b>Thank you for taking part in this RELMED session!</b></p>${learningGamesIntro}` +
+        (settings.session === "wk0" ? `<b>Please read the instructions carefully. They may differ from the training session.</b>` : ""),
+        warningExplanation
+    ];
+};
+
+// Welcome message for modules that follow other modules in a session (relmed_trial1 welcome_back_msg)
+const welcomeBackMessage = (settings) => {
+    if (isResuming(settings)) return resumptionMessage;
+
+    return [`<p>Welcome back!</p>
+        <p>You will now play more games of trial and error learning.</p>
+        <p>Like before, these are fast paced and everyone is expected to make more than a few mistakes.</p>`];
+};
+
+// Context-specific end of module message (relmed_trial1 end_experiment_msgs)
+const endMessage = (settings) => ({
+    message: settings.context === "prolific" ?
+        [`<p>Thank you for participating in this study!</p>
+        <p>The purpose of this study is to develop games that can measure people's individual learning tendencies. In the future, these games will be used to facilitate mental health research ongoing at UCL.</p>`,
+        `<p>When you click next, your data will be uploaded to the server. This may take up to two minutes. Please don't close or refresh your browser at this time.</p>
+        <p>When data upload is complete, you will be redirected to Prolific to complete your submission</p>`] :
+        [`<p>Thank you for completing this module!</p>
+        <p>When you click next, your data will be uploaded to the secure server. This may take up to two minutes. Please don't close or refresh your browser at this time.</p>
+        <p>When data upload is complete, you will be redirected back to My RELMED.</p>`],
+    data: { trialphase: "experiment_end_message" },
+    on_finish: endExperiment
+});
+
 export const messages = {
     full_battery: {
         start_message: (settings) => { 
@@ -57,24 +114,45 @@ export const messages = {
         }
     },
     screening: {
-        start_message: [
-            `<p><b>Welcome to the first RELMED training session!</b></p>
-            <p>Over the next twenty minutes, you will try out the main tasks comprising the home assessments in the RELMED study.
-            <p>You will start by playing a few simple trial-and-error learning games. Your goal in each game is to win as many coins as possible.</p>
-            <p>The games may feel a bit fast-paced because we're interested in your quick, intuitive decisions. Since they're designed around learning from experience, making mistakes is completely expected. Over time, you'll figure out better choices and improve your performance.</p>
-            `,
-            `
-            <p>If at some point you are taking too long to respond, you might see a message like this:</p><br>
-            ${formatted_warning_msg}
-            <br><p>It is perfectly natural to take a bit longer when you are learning something new. However, if you see this message a few times, it may be a sign that you are overthinking your choices.</p>
-            <p>If at any point you feel like you need some assistance, you can find our contact details by pressing the question mark in the top right corner. We are happy to help.</p>`
+        start_message: (settings) => {
+            if (isResuming(settings)) return resumptionMessage;
+            if (settings.context === "prolific") return welcomeMessage(settings);
+            return [
+                `<p><b>Welcome to the first RELMED training session!</b></p>
+                <p>Over the next twenty minutes, you will try out the main tasks comprising the home assessments in the RELMED study.
+                <p>You will start by playing a few simple trial-and-error learning games. Your goal in each game is to win as many coins as possible.</p>
+                <p>The games may feel a bit fast-paced because we're interested in your quick, intuitive decisions. Since they're designed around learning from experience, making mistakes is completely expected. Over time, you'll figure out better choices and improve your performance.</p>
+                `,
+                warningExplanation
+            ];
+        },
+        another_game_message: [
+            `<p>You will now play another game of trial and error learning.</p>
+            <p>Like before, these are fast paced and everyone is expected to make more than a few mistakes.</p>`
         ],
-        end_message:  {
-            message: 
-                `<p>Thank you for completing this module!</p>
-                <p>When you click next, your data will be uploaded to the secure server. This may take up to two minutes. Please don't close or refresh your browser at this time.</p>`,
-            on_finish: endExperiment
-        }
+        end_message: endMessage
+    },
+    pilt_to_test: {
+        start_message: welcomeBackMessage,
+        end_message: endMessage
+    },
+    wm: {
+        start_message: welcomeBackMessage,
+        end_message: endMessage
+    },
+    reversal: {
+        start_message: welcomeMessage,
+        end_message: endMessage
+    },
+    control: {
+        end_message: endMessage
+    },
+    quests: {
+        start_message: (settings) => isResuming(settings) ? resumptionMessage : [
+            `<p>Welcome back!</p>
+            <p>This module comprises several tasks and questionnaires, concerning your personal feelings, preferences, thoughts, and attitudes.</p>`
+        ],
+        end_message: endMessage
     }
 }
 

@@ -205,6 +205,18 @@ export function getModule(moduleName) {
 }
 
 /**
+ * Check whether a module element applies to the given session and context
+ * @param {Object} element - Module element, optionally with `sessions` and `contexts` arrays
+ * @param {Object} settings - Settings with `session` and `context`
+ * @returns {boolean} True if the element should be included
+ */
+export function isElementIncluded(element, settings = {}) {
+    if (element.sessions && !element.sessions.includes(settings.session)) return false;
+    if (element.contexts && !element.contexts.includes(settings.context)) return false;
+    return true;
+}
+
+/**
  * Create a timeline for a module by processing all its elements
  * @param {string} moduleName - Name of the module
  * @param {Object} config - Module configuration object
@@ -221,8 +233,9 @@ export async function createModuleTimeline(moduleName, config) {
         }
     });
 
-    // Create timeline for each element in the module
-    const timelines = module.elements.map(element => {
+    // Create timeline for each element in the module that applies to this session / context
+    const settings = { ...module.moduleConfig, ...config };
+    const timelines = module.elements.filter(element => isElementIncluded(element, settings)).map(element => {
         if (element.type === "task") {
             return createTaskTimeline(element.name, { ...module.moduleConfig, ...element.config, ...config });
         }
@@ -273,15 +286,22 @@ export function getModuleInfo(moduleName) {
     info += `Sequence: (${module.elements.length} elements total):\n`;
     module.elements.forEach((element, index) => {
         const num = (index + 1).toString().padStart(2, '0');
+        const restrictions = [
+            element.sessions ? `sessions: ${element.sessions.join('/')}` : null,
+            element.contexts ? `contexts: ${element.contexts.join('/')}` : null
+        ].filter(Boolean);
+        const suffix = restrictions.length ? ` [${restrictions.join('; ')}]` : '';
         if (element.type === 'task') {
             info += `  ${num}. ${element.name}`;
             if (element.config) {
                 const configItems = Object.entries(element.config).map(([k, v]) => `${k}: ${v}`);
                 info += ` (${configItems.join(', ')})`;
             }
-            info += '\n';
+            info += `${suffix}\n`;
         } else if (element.type === 'instructions') {
-            info += `  ${num}. [Instructions: ${element.config?.text || 'unknown'}]\n`;
+            info += `  ${num}. [Instructions: ${element.config?.text || 'unknown'}]${suffix}\n`;
+        } else if (element.type === 'bonus') {
+            info += `  ${num}. [Bonus]${suffix}\n`;
         }
     });
 

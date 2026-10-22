@@ -185,7 +185,7 @@ const enterExperiment = {
         })
 
         // Prevent participant from terminating experiment unless in debug mode
-        if (!(window.participantID && window.participantID.includes("debug"))) {
+        if (!(window.debug || (window.participantID && window.participantID.includes("debug")))) {
             preventParticipantTermination();
         }
     }

@@ -36,42 +36,50 @@
     <script src="tasks/reversal/plugin-reversal.js"></script>
     <script src="tasks/open-text/plugin-open-text.js"></script>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --bg: #f5f6f8;
+            --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            --bg: #f7f6f3;
             --surface: #ffffff;
-            --surface-muted: #f8f9fb;
-            --border: #e5e7eb;
-            --border-strong: #d1d5db;
-            --text: #111827;
-            --text-muted: #6b7280;
-            --text-faint: #9ca3af;
-            --accent: #4f46e5;
-            --accent-hover: #4338ca;
-            --accent-soft: #eef2ff;
+            --surface-muted: #f3f2ef;
+            --border: #e7e5e1;
+            --border-strong: #d6d3cd;
+            --text: #1c1a17;
+            --text-muted: #6f6a63;
+            --text-faint: #a29d95;
+            --accent: #0f6b62;
+            --accent-hover: #0b5850;
+            --accent-soft: #e5f1ef;
             --accent-text: #ffffff;
-            --danger: #dc2626;
-            --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+            --danger: #b42318;
+            --shadow: 0 1px 2px rgba(28, 26, 23, 0.04), 0 2px 6px rgba(28, 26, 23, 0.04);
+            --shadow-active: 0 1px 2px rgba(28, 26, 23, 0.12);
             --radius: 12px;
             --radius-sm: 8px;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg: #0d0f13;
-                --surface: #16191f;
-                --surface-muted: #1c2027;
-                --border: #262b33;
-                --border-strong: #353b45;
-                --text: #f3f4f6;
-                --text-muted: #9ca3af;
-                --text-faint: #6b7280;
-                --accent: #818cf8;
-                --accent-hover: #a5b4fc;
-                --accent-soft: rgba(129, 140, 248, 0.12);
-                --accent-text: #0d0f13;
-                --danger: #f87171;
+                --bg: #111312;
+                --surface: #181b1a;
+                --surface-muted: #1f2321;
+                --border: #2a2f2d;
+                --border-strong: #3a403d;
+                --text: #ecebe8;
+                --text-muted: #a3a09a;
+                --text-faint: #6f6c67;
+                --accent: #5cc0b2;
+                --accent-hover: #7dd0c4;
+                --accent-soft: rgba(92, 192, 178, 0.12);
+                --accent-text: #0d1513;
+                --danger: #f2877d;
                 --shadow: none;
+                --shadow-active: none;
             }
         }
 
@@ -82,7 +90,7 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: var(--font-sans);
             background: var(--bg);
             color: var(--text);
             font-size: 14px;
@@ -106,9 +114,9 @@
         }
 
         h1 {
-            font-size: 22px;
-            font-weight: 650;
-            letter-spacing: -0.01em;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
         }
 
         .subtitle {
@@ -203,7 +211,7 @@
         .segmented button.active {
             background: var(--surface);
             color: var(--text);
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.1);
+            box-shadow: var(--shadow-active);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -301,7 +309,7 @@
             display: inline-block;
             margin-left: 6px;
             padding: 0 6px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-family: var(--font-mono);
             font-size: 11px;
             color: var(--text-muted);
             background: var(--surface-muted);
@@ -417,7 +425,7 @@
         }
 
         .url-row input {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-family: var(--font-mono);
             font-size: 12px;
             color: var(--text-muted);
             background: var(--surface-muted);

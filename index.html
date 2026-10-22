@@ -578,6 +578,9 @@
 
         const el = (id) => document.getElementById(id);
 
+        // Escape text before inserting it into HTML
+        const escapeHtml = (value) => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
         const isModuleAvailable = (name) => !ModuleRegistry[name].sessions || ModuleRegistry[name].sessions.includes(state.session);
         const isTaskAvailable = (name) => !TaskRegistry[name].sequences || state.session in TaskRegistry[name].sequences;
 
@@ -589,8 +592,8 @@
             button.dataset.value = key;
             button.innerHTML = `<span class="radio"></span>
                 <span class="option-body">
-                    <span class="option-name">${name}</span><span class="option-key">${key}</span>
-                    <span class="option-desc" style="display: block;">${available ? description : `Not available for ${state.session}`}</span>
+                    <span class="option-name">${escapeHtml(name)}</span><span class="option-key">${escapeHtml(key)}</span>
+                    <span class="option-desc" style="display: block;">${escapeHtml(available ? description : `Not available for ${state.session}`)}</span>
                 </span>`;
             button.addEventListener('click', () => {
                 state[state.mode] = key;
@@ -647,7 +650,7 @@
             const chips = [
                 state.session === 'screening' ? 'Screening' : `Week ${state.session.slice(2)}`,
                 state.context === 'relmed' ? 'RELMED' : 'Prolific'
-            ].map(c => `<span class="chip">${c}</span>`).join('') +
+            ].map(c => `<span class="chip">${escapeHtml(c)}</span>`).join('') +
                 (state.runMode === 'simulate' ? '<span class="chip accent">Simulation</span>' : '');
 
             const preview = el('preview');
@@ -659,18 +662,18 @@
                         isElementIncluded(element, settings) ? '' : 'skipped',
                         element.type === 'task' ? '' : 'minor'
                     ].join(' ').trim();
-                    return `<li class="${classes}">${describeElement(element)}</li>`;
+                    return `<li class="${classes}">${escapeHtml(describeElement(element))}</li>`;
                 });
-                preview.innerHTML = `<div class="summary-title">${module.name}</div>
+                preview.innerHTML = `<div class="summary-title">${escapeHtml(module.name)}</div>
                     <div class="chips">${chips}</div>
                     <ol class="steps" style="margin-top: 16px;">${items.join('')}</ol>`;
             } else {
                 const task = TaskRegistry[state.task];
                 const sequences = task.sequences ? Object.keys(task.sequences).join(', ') : 'session independent';
-                preview.innerHTML = `<div class="summary-title">${task.name}</div>
+                preview.innerHTML = `<div class="summary-title">${escapeHtml(task.name)}</div>
                     <div class="chips">${chips}</div>
-                    <div class="description" style="margin-top: 16px;">${task.description}
-                        <div class="meta">Sequences: ${sequences}</div>
+                    <div class="description" style="margin-top: 16px;">${escapeHtml(task.description)}
+                        <div class="meta">Sequences: ${escapeHtml(sequences)}</div>
                     </div>`;
             }
         }
@@ -699,6 +702,9 @@
             if (!(state.module in ModuleRegistry)) state.module = Object.keys(ModuleRegistry)[0];
             if (!(state.task in TaskRegistry)) state.task = Object.keys(TaskRegistry)[0];
             if (!sessions.includes(state.session)) state.session = sessions[0];
+            if (!['relmed', 'prolific'].includes(state.context)) state.context = 'relmed';
+            if (!['regular', 'simulate'].includes(state.runMode)) state.runMode = 'regular';
+            if (!['module', 'task'].includes(state.mode)) state.mode = 'module';
 
             for (const id of ['context', 'runMode', 'mode']) {
                 el(id).querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.value === state[id]));
@@ -720,7 +726,7 @@
         }
 
         // Wire up controls
-        el('session').innerHTML = sessions.map(s => `<option value="${s}">${s === 'screening' ? 'Screening' : `Week ${s.slice(2)}`}</option>`).join('');
+        el('session').innerHTML = sessions.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s === 'screening' ? 'Screening' : `Week ${s.slice(2)}`)}</option>`).join('');
         for (const id of ['context', 'runMode', 'mode']) {
             el(id).querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
                 state[id] = b.dataset.value;

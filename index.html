@@ -37,6 +37,44 @@
     <script src="tasks/open-text/plugin-open-text.js"></script>
 
     <style>
+        :root {
+            --bg: #f5f6f8;
+            --surface: #ffffff;
+            --surface-muted: #f8f9fb;
+            --border: #e5e7eb;
+            --border-strong: #d1d5db;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --text-faint: #9ca3af;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --accent-soft: #eef2ff;
+            --accent-text: #ffffff;
+            --danger: #dc2626;
+            --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0d0f13;
+                --surface: #16191f;
+                --surface-muted: #1c2027;
+                --border: #262b33;
+                --border-strong: #353b45;
+                --text: #f3f4f6;
+                --text-muted: #9ca3af;
+                --text-faint: #6b7280;
+                --accent: #818cf8;
+                --accent-hover: #a5b4fc;
+                --accent-soft: rgba(129, 140, 248, 0.12);
+                --accent-text: #0d0f13;
+                --danger: #f87171;
+                --shadow: none;
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -44,310 +82,459 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-            padding: 40px 16px;
-        }
-
-        .container {
-            background: white;
-            padding: 32px;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 860px;
-            margin: 0 auto;
-        }
-
-        .title {
-            font-size: 26px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .subtitle {
-            font-size: 15px;
-            color: #7f8c8d;
-            margin: 4px 0 24px;
-        }
-
-        .settings {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px 20px;
-            margin-bottom: 24px;
-        }
-
-        label, .label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #555;
-        }
-
-        input[type="text"], select {
-            width: 100%;
-            padding: 9px 12px;
-            font-size: 15px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            outline: none;
-            background: white;
-        }
-
-        input[type="text"]:focus, select:focus {
-            border-color: #667eea;
-        }
-
-        .segmented {
-            display: flex;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .segmented button {
-            flex: 1;
-            padding: 9px 8px;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             font-size: 14px;
-            border: none;
-            background: white;
-            color: #555;
-            cursor: pointer;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .segmented button + button {
-            border-left: 2px solid #e1e8ed;
-        }
-
-        .segmented button.active {
-            background: #667eea;
-            color: white;
-            font-weight: 600;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            border-bottom: 2px solid #e1e8ed;
-            margin-bottom: 16px;
-        }
-
-        .tabs button {
-            padding: 10px 18px;
-            font-size: 15px;
-            font-weight: 600;
-            border: none;
-            background: none;
-            color: #7f8c8d;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-        }
-
-        .tabs button.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        .group-title {
-            font-size: 13px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: #95a5a6;
-            margin: 16px 0 8px;
-        }
-
-        .options {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 10px;
-        }
-
-        .option {
-            text-align: left;
-            padding: 12px 14px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
+        button, input, select {
             font: inherit;
             color: inherit;
         }
 
+        .page {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 40px 16px 48px;
+        }
+
+        header {
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 340px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        /* Settings */
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            padding: 18px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 640px) {
+            .settings {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .field-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
+
+        .segmented {
+            display: flex;
+            height: 36px;
+            padding: 3px;
+            gap: 2px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .segmented button {
+            flex: 1;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .segmented button:hover {
+            color: var(--text);
+        }
+
+        .segmented button.active {
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .segmented button.active {
+                background: var(--border-strong);
+            }
+        }
+
+        /* Mode switch */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .toolbar .segmented {
+            flex: 0 1 280px;
+        }
+
+        .count {
+            color: var(--text-faint);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        /* Option list */
+        .group-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin: 20px 0 8px;
+        }
+
+        .group-title:first-child {
+            margin-top: 0;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 8px;
+        }
+
+        .option {
+            display: flex;
+            gap: 12px;
+            text-align: left;
+            padding: 12px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
         .option:hover:not(:disabled) {
-            border-color: #b3bdf3;
+            border-color: var(--border-strong);
         }
 
         .option.selected {
-            border-color: #667eea;
-            background: #f3f5fe;
+            border-color: var(--accent);
+            background: var(--accent-soft);
         }
 
         .option:disabled {
-            opacity: 0.45;
             cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .radio {
+            flex: none;
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            border: 1.5px solid var(--border-strong);
+            border-radius: 50%;
+            transition: border 0.15s;
+        }
+
+        .option.selected .radio {
+            border: 5px solid var(--accent);
+        }
+
+        .option-body {
+            min-width: 0;
         }
 
         .option-name {
             font-weight: 600;
-            font-size: 15px;
-            color: #2c3e50;
         }
 
         .option-key {
-            font-family: monospace;
-            font-size: 12px;
-            color: #95a5a6;
-            margin-left: 4px;
+            display: inline-block;
+            margin-left: 6px;
+            padding: 0 6px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            vertical-align: 1px;
         }
 
         .option-desc {
+            color: var(--text-muted);
             font-size: 13px;
-            color: #7f8c8d;
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
-        .preview {
-            margin-top: 20px;
-            padding: 14px 16px;
-            background: #f8f9fb;
-            border-radius: 8px;
-            font-size: 14px;
+        /* Summary panel */
+        .summary {
+            position: sticky;
+            top: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .preview ol {
-            margin: 8px 0 0 22px;
+        .summary-title {
+            font-size: 16px;
+            font-weight: 600;
         }
 
-        .preview li {
-            margin: 2px 0;
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
         }
 
-        .preview .muted {
-            color: #95a5a6;
+        .chip {
+            padding: 1px 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: 999px;
         }
 
-        .preview .skipped {
-            color: #b2bec3;
+        .chip.accent {
+            color: var(--accent);
+            border-color: transparent;
+            background: var(--accent-soft);
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: step;
+            max-height: 340px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .steps li {
+            counter-increment: step;
+            display: flex;
+            gap: 10px;
+            padding: 3px 0;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            flex: none;
+            width: 20px;
+            height: 20px;
+            margin-top: 1px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border-radius: 50%;
+        }
+
+        .steps li.minor {
+            color: var(--text-muted);
+        }
+
+        .steps li.skipped {
+            counter-increment: none;
+            color: var(--text-faint);
             text-decoration: line-through;
         }
 
-        .launch {
-            margin-top: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .steps li.skipped::before {
+            content: "–";
+            background: none;
+        }
+
+        .description {
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .meta {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text-faint);
         }
 
         .url-row {
             display: flex;
-            gap: 8px;
-        }
-
-        .url-row input {
-            font-family: monospace;
-            font-size: 13px;
-            color: #555;
-        }
-
-        .secondary-button {
-            padding: 0 14px;
-            font-size: 14px;
-            border: 2px solid #e1e8ed;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .checkbox {
-            font-size: 14px;
-            font-weight: normal;
-            display: flex;
-            align-items: center;
             gap: 6px;
         }
 
-        .start-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 14px 32px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
+        .url-row input {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+        }
+
+        .ghost-button {
+            flex: none;
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
+        }
+
+        .ghost-button:hover {
+            background: var(--surface-muted);
+        }
+
+        .checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .checkbox input {
+            accent-color: var(--accent);
+        }
+
+        .start-button {
+            height: 42px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            color: var(--accent-text);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
         }
 
         .start-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            background: var(--accent-hover);
         }
 
         .start-button:disabled {
-            background: #bdc3c7;
+            opacity: 0.4;
             cursor: not-allowed;
         }
 
         .error-message {
-            color: #e74c3c;
-            font-size: 14px;
-            min-height: 1em;
+            color: var(--danger);
+            font-size: 13px;
+        }
+
+        .error-message:empty {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="title">RELMED Task Battery</div>
-        <div class="subtitle">Preview modules or individual tasks</div>
+    <div class="page">
+        <header>
+            <h1>RELMED Task Battery</h1>
+            <div class="subtitle">Preview a full module or a single task</div>
+        </header>
 
-        <div class="settings">
-            <div>
-                <label for="participantId">Participant ID</label>
-                <input type="text" id="participantId" value="TST" autocomplete="off">
-            </div>
-            <div>
-                <span class="label">Context</span>
-                <div class="segmented" id="context">
-                    <button type="button" data-value="relmed">RELMED</button>
-                    <button type="button" data-value="prolific">Prolific</button>
+        <div class="layout">
+            <main>
+                <section class="card settings">
+                    <div>
+                        <label class="field-label" for="participantId">Participant ID</label>
+                        <input type="text" id="participantId" value="TST" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div>
+                        <span class="field-label">Context</span>
+                        <div class="segmented" id="context">
+                            <button type="button" data-value="relmed">RELMED</button>
+                            <button type="button" data-value="prolific">Prolific</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label" for="session">Session</label>
+                        <select id="session"></select>
+                    </div>
+                    <div>
+                        <span class="field-label">Run mode</span>
+                        <div class="segmented" id="runMode">
+                            <button type="button" data-value="regular">Regular</button>
+                            <button type="button" data-value="simulate">Simulate</button>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="toolbar">
+                    <div class="segmented" id="mode">
+                        <button type="button" data-value="module">Modules</button>
+                        <button type="button" data-value="task">Single tasks</button>
+                    </div>
+                    <span class="count" id="count"></span>
                 </div>
-            </div>
-            <div>
-                <label for="session">Session</label>
-                <select id="session"></select>
-            </div>
-            <div>
-                <span class="label">Run mode</span>
-                <div class="segmented" id="runMode">
-                    <button type="button" data-value="regular">Regular</button>
-                    <button type="button" data-value="simulate">Simulate</button>
+
+                <div id="optionList"></div>
+            </main>
+
+            <aside class="card summary">
+                <div id="preview"></div>
+                <div class="url-row">
+                    <input type="text" id="url" readonly aria-label="Experiment URL">
+                    <button type="button" class="ghost-button" id="copyButton">Copy</button>
                 </div>
-            </div>
-        </div>
-
-        <div class="tabs" id="mode">
-            <button type="button" data-value="module">Module mode</button>
-            <button type="button" data-value="task">Single task mode</button>
-        </div>
-
-        <div id="optionList"></div>
-        <div class="preview" id="preview"></div>
-
-        <div class="launch">
-            <div class="url-row">
-                <input type="text" id="url" readonly>
-                <button type="button" class="secondary-button" id="copyButton">Copy</button>
-            </div>
-            <label class="checkbox"><input type="checkbox" id="newTab"> Open in new tab</label>
-            <button type="button" class="start-button" id="startButton">Start</button>
-            <div class="error-message" id="errorMessage"></div>
+                <label class="checkbox"><input type="checkbox" id="newTab"> Open in new tab</label>
+                <button type="button" class="start-button" id="startButton">Start</button>
+                <div class="error-message" id="errorMessage"></div>
+            </aside>
         </div>
     </div>
 
@@ -392,8 +579,11 @@
             button.className = 'option' + (selected ? ' selected' : '');
             button.disabled = !available;
             button.dataset.value = key;
-            button.innerHTML = `<div><span class="option-name">${name}</span><span class="option-key">${key}</span></div>
-                <div class="option-desc">${available ? description : `Not available for ${state.session}`}</div>`;
+            button.innerHTML = `<span class="radio"></span>
+                <span class="option-body">
+                    <span class="option-name">${name}</span><span class="option-key">${key}</span>
+                    <span class="option-desc" style="display: block;">${available ? description : `Not available for ${state.session}`}</span>
+                </span>`;
             button.addEventListener('click', () => {
                 state[state.mode] = key;
                 render();
@@ -422,13 +612,16 @@
                     return optionButton(key, module.name, module.description || '', isModuleAvailable(key), state.module === key);
                 };
                 const moduleKeys = Object.keys(ModuleRegistry);
-                renderGroup(container, 'RELMED trial 1 modules', TRIAL1_MODULES.filter(k => k in ModuleRegistry), moduleButton);
-                renderGroup(container, 'Custom modules', moduleKeys.filter(k => !TRIAL1_MODULES.includes(k)), moduleButton);
+                renderGroup(container, 'RELMED trial 1', TRIAL1_MODULES.filter(k => k in ModuleRegistry), moduleButton);
+                renderGroup(container, 'Custom', moduleKeys.filter(k => !TRIAL1_MODULES.includes(k)), moduleButton);
+                el('count').textContent = `${moduleKeys.filter(isModuleAvailable).length} of ${moduleKeys.length} available`;
             } else {
-                renderGroup(container, 'Tasks', Object.keys(TaskRegistry), (key) => {
+                const taskKeys = Object.keys(TaskRegistry);
+                renderGroup(container, 'Tasks', taskKeys, (key) => {
                     const task = TaskRegistry[key];
                     return optionButton(key, task.name, task.description, isTaskAvailable(key), state.task === key);
                 });
+                el('count').textContent = `${taskKeys.filter(isTaskAvailable).length} of ${taskKeys.length} available`;
             }
         }
 
@@ -437,26 +630,40 @@
                 const label = TaskRegistry[element.name]?.name || element.name;
                 return element.name === 'acceptability_judgment' ? `${label} (${element.config?.task_name})` : label;
             }
-            if (element.type === 'instructions') return `<span class="muted">Message: ${element.config.text}</span>`;
-            if (element.type === 'bonus') return '<span class="muted">Bonus</span>';
+            if (element.type === 'instructions') return `Message: ${element.config.text.replace(/_/g, ' ')}`;
+            if (element.type === 'bonus') return 'Bonus';
             return element.type;
         }
 
         function renderPreview() {
+            const chips = [
+                state.session === 'screening' ? 'Screening' : `Week ${state.session.slice(2)}`,
+                state.context === 'relmed' ? 'RELMED' : 'Prolific'
+            ].map(c => `<span class="chip">${c}</span>`).join('') +
+                (state.runMode === 'simulate' ? '<span class="chip accent">Simulation</span>' : '');
+
             const preview = el('preview');
             if (state.mode === 'module') {
                 const module = ModuleRegistry[state.module];
                 const settings = { ...module.moduleConfig, session: state.session, context: state.context };
-                const items = module.elements.map(element => isElementIncluded(element, settings) ?
-                    `<li>${describeElement(element)}</li>` :
-                    `<li class="skipped">${describeElement(element)}</li>`);
-                preview.innerHTML = `<b>${module.name}</b> at ${state.session}, ${state.context} context
-                    <ol>${items.join('')}</ol>`;
+                const items = module.elements.map(element => {
+                    const classes = [
+                        isElementIncluded(element, settings) ? '' : 'skipped',
+                        element.type === 'task' ? '' : 'minor'
+                    ].join(' ').trim();
+                    return `<li class="${classes}">${describeElement(element)}</li>`;
+                });
+                preview.innerHTML = `<div class="summary-title">${module.name}</div>
+                    <div class="chips">${chips}</div>
+                    <ol class="steps" style="margin-top: 16px;">${items.join('')}</ol>`;
             } else {
                 const task = TaskRegistry[state.task];
-                const sequences = task.sequences ? Object.keys(task.sequences).join(', ') : 'none (session independent)';
-                preview.innerHTML = `<b>${task.name}</b>: ${task.description}
-                    <div class="muted" style="margin-top: 6px;">Sequences: ${sequences}</div>`;
+                const sequences = task.sequences ? Object.keys(task.sequences).join(', ') : 'session independent';
+                preview.innerHTML = `<div class="summary-title">${task.name}</div>
+                    <div class="chips">${chips}</div>
+                    <div class="description" style="margin-top: 16px;">${task.description}
+                        <div class="meta">Sequences: ${sequences}</div>
+                    </div>`;
             }
         }
 
@@ -505,7 +712,7 @@
         }
 
         // Wire up controls
-        el('session').innerHTML = sessions.map(s => `<option value="${s}">${s === 'screening' ? 'Screening' : `Week ${s.slice(2)} (${s})`}</option>`).join('');
+        el('session').innerHTML = sessions.map(s => `<option value="${s}">${s === 'screening' ? 'Screening' : `Week ${s.slice(2)}`}</option>`).join('');
         for (const id of ['context', 'runMode', 'mode']) {
             el(id).querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
                 state[id] = b.dataset.value;

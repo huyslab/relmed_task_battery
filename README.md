@@ -1,5 +1,7 @@
 # RELMED Task Battery
 
+[![Try Task Battery](https://img.shields.io/badge/Try%20Task%20Battery-blue)](https://huyslab.github.io/relmed_task_battery/)
+
 ## Overview
 This repository aims to provide easy to customize code for the RELMED task battery. This system provides a standardized interface for creating and combining experimental timelines, making it easy to build complete experiments from individual task components. The framework is built on top of jsPsych and follows a modular architecture that promotes code reusability and consistency across different experimental paradigms.
 

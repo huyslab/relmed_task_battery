@@ -15,6 +15,15 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      - name: Check PAT_TOKEN secret is set
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          if [ -z "$PAT_TOKEN" ]; then
+            echo "::error::The PAT_TOKEN secret is missing. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -25,6 +34,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
